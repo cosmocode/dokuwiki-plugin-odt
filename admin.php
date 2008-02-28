@@ -52,6 +52,27 @@ class admin_plugin_odt extends DokuWiki_Admin_Plugin {
      */
     function html() {
         ptln('<h1>'.$this->getLang('manage_tpl').'</h1>');
+        ptln('<div class="level1"><p>'.$this->getLang('contain').'</p></div>');
+        $tpl_path = DOKU_PLUGIN.'odt/templates';
+        $templates = array();
+        $dir = opendir($tpl_path);
+        while (false !== ($filename = readdir($dir))) {
+            if ($filename == "." || $filename == "..") continue;
+            $extension = substr($filename, strrpos($filename, '.')+1);
+            if (is_file($tpl_path.'/'.$filename) && $extension == "odt") {
+                $templates []= $filename;
+            }
+        }
+        if (!is_writable($tpl_path)) {
+            ptln('<div class="level1"><p>'.$this->getLang('no_access').'</p>');
+            ptln('<ul>');
+            foreach ($templates as $filename) {
+                ptln('<li>'.htmlentities($filename).'</li>');
+            }
+            ptln('<ul></div>');
+            return;
+        }
+
         ptln('<form action="'.wl($ID).'" method="post">');
  
         // output hidden values to ensure dokuwiki will return back to this plugin
@@ -60,14 +81,8 @@ class admin_plugin_odt extends DokuWiki_Admin_Plugin {
  
         ptln('<h2>'.$this->getLang('delete_existing').'</h2>');
         ptln('  <div class="level2"><p>');
-        $tpl_path = DOKU_PLUGIN.'odt/templates';
-        $dir = opendir($tpl_path);
-        while (false !== ($filename = readdir($dir))) {
-            if ($filename == "." || $filename == "..") continue;
-            $extension = substr($filename, strrpos($filename, '.')+1);
-            if (is_file($tpl_path.'/'.$filename) && $extension == "odt") {
-                ptln('<input type="checkbox" name="'.htmlentities($filename).'" /> '.htmlentities($filename).'<br />');
-            }
+        foreach ($templates as $filename) {
+            ptln('<input type="checkbox" name="'.htmlentities($filename).'" /> '.htmlentities($filename).'<br />');
         }
         ptln('  <input type="submit" name="delete"  value="'.$this->getLang('btn_delete').'" />');
         ptln(' </p></div>');
