@@ -19,3 +19,9 @@ $lang['contain'] = 'Your templates may contain the "DOKUWIKI-ODT-INSERT" string,
 $lang['delete_existing'] = 'Delete existing templates';
 $lang['upload_new'] = 'Upload new templates';
 $lang['no_access'] = 'Dokuwiki has no write access to the templates directory, you won\'t be able to add or delete templates. The available templates are:';
+$lang['success_upload'] = 'The template "%s" was successfully uploaded !';
+$lang['failure_upload'] = 'The template "%s" could not be uploaded !';
+$lang['failure_upload_type'] = 'Only ODT files may be used as templates ! (%s)';
+$lang['success_del'] = 'The template "%s" was successfully deleted !';
+$lang['failure_del'] = 'The template "%s" could not be deleted !';
+
