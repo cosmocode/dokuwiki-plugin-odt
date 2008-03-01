@@ -224,8 +224,15 @@ class renderer_plugin_odt extends Doku_Renderer {
      * Closes the document
      */
     function document_end(){
-        if ($this->template && file_exists(DOKU_PLUGIN.'odt/templates/'.$this->template)) {
-            $this->document_end_template();
+        if ($this->template) { // template chosen
+            if (file_exists(DOKU_INC.'data/media/'.$this->getConf("tpl_dir")."/".$this->template)) { //template found
+                $this->document_end_template();
+            } else { // template chosen but not found : warn the user and use the default template
+                $this->doc = '<text:p text:style-name="Text_20_body"><text:span text:style-name="Strong_20_Emphasis">'
+                             .$this->_xmlEntities( sprintf($this->getLang('tpl_not_found'),$this->template,$this->getConf("tpl_dir")) )
+                             .'</text:span></text:p>'.$this->doc;
+                $this->document_end_scratch();
+            }
         } else {
             $this->document_end_scratch();
         }
@@ -322,7 +329,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         if (is_dir($this->temp_dir)) { $this->io_rm_rf($this->temp_dir); }
         io_mkdir_p($this->temp_dir);
         // Extract template
-        $template_path = DOKU_PLUGIN.'odt/templates/'.$this->template;
+        $template_path = DOKU_INC.'data/media/'.$this->getConf("tpl_dir")."/".$this->template;
         $this->ZIP->Extract($template_path, $this->temp_dir);
 
         // Insert content
