@@ -85,39 +85,7 @@ class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
             return true;
         } else { // Extended info
             list($info_type, $info_value) = $data;
-            if ($info_type == "field" or $info_type == "property") { // User-defined fields
-                $field = explode('=',$info_value);
-                $fname = $field[0];
-                if (count($field) < 2) { // no value -> get the field
-                    if ($format == 'odt') {
-                        if ($info_type == "field")
-                            $renderer->_odtInsertUserField($fname);
-                        if ($info_type == "property")
-                            $renderer->_odtInsertProperty($fname);
-                    } elseif ($format == 'xhtml' && isset($renderer->fields) && array_key_exists($fname, $renderer->fields)) {
-                        $renderer->doc .= $renderer->fields[$fname];
-                    }
-                    return true;
-                }
-                // set field
-                if (count($field) == 2) {
-                    $fvalue = $field[1];
-                } else { // field value may contain equal signs
-                    $fvalue = implode(array_slice($field,1), '=');
-                }
-                if ($format == 'odt') {
-                    if ($info_type == "field")
-                        $renderer->_odtAddUserField($fname, $fvalue);
-                    if ($info_type == "property")
-                        $renderer->_odtAddProperty($fname, $fvalue);
-                } elseif ($format == 'xhtml') {
-                    if (!isset($renderer->fields)) {
-                        $renderer->fields = array();
-                    }
-                    $renderer->fields[$fname] = $fvalue;
-                }
-                return true;
-            } elseif ($info_type == "template") { // Template-based
+            if ($info_type == "template") { // Template-based export
                 $renderer->template = $info_value;
             }
         }

@@ -10,27 +10,22 @@
 if(!defined('DOKU_INC')) die();
 
 require_once DOKU_INC.'inc/parser/renderer.php';
-require_once 'ZipLib.class.php';
+//require_once DOKU_INC.'inc/ZipLib.class.php';
+require_once 'ZipLib.class.php'; // contains the patches
 
 /**
  * The Renderer
  */
 class renderer_plugin_odt extends Doku_Renderer {
+    var $info = array("cache"=> false);
     var $ZIP = null;
+    var $meta;
     var $store = '';
     var $footnotes = array();
     var $manifest  = array();
     var $headers = array();
     var $template = "";
     var $fields = array();
-    var $meta = array(
-        'meta:initial-creator'      => 'Generated',
-        'dc:creator'                => 'Generated',
-        'meta:editing-cycles'       => '1',
-        'meta:editing-duration'     => 'PT0S',
-    );
-    var $meta_keyword = array();
-    var $meta_user = array();
     // Automatic styles. Will always be added to content.xml and styles.xml
     var $autostyles = array(
         "pm1"=>'
@@ -164,6 +159,18 @@ class renderer_plugin_odt extends Doku_Renderer {
         // prepare the zipper
         $this->ZIP = new ZipLib();
 
+        // prepare meta data
+        $this->meta             = array(
+                'meta:generator'            => 'DokuWiki '.getversion(),
+                'meta:initial-creator'      => 'Generated',
+                'meta:creation-date'        => date('Y-m-d\\TH::i:s', null), //FIXME
+                'dc:creator'                => 'Generated',
+                'dc:date'                   => date('Y-m-d\\TH::i:s', null),
+                'dc:language'               => 'en-US',
+                'meta:editing-cycles'       => '1',
+                'meta:editing-duration'     => 'PT0S',
+            );
+
         // send the content type header
         header('Content-Type: application/vnd.oasis.opendocument.text');
         header('Content-Disposition: attachment; filename="'.str_replace(':','-',$ID).'.odt";');
@@ -173,10 +180,6 @@ class renderer_plugin_odt extends Doku_Renderer {
      * Prepare meta.xml
      */
     function _odtMeta(){
-        // Complete the meta tags with dynamic values
-        $this->meta['meta:generator'] = 'DokuWiki '.getversion();
-        $this->meta['meta:creation-date'] = date('Y-m-d\\TH:i:s');
-        $this->meta['dc:date'] = date('Y-m-d\\TH:i:s');
         $value  =   '<' . '?xml version="1.0" encoding="UTF-8"?' . ">\n";
         $value .=   '<office:document-meta ';
         $value .=       'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" ';
@@ -185,12 +188,9 @@ class renderer_plugin_odt extends Doku_Renderer {
         $value .=       'xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" ';
         $value .=   'office:version="1.0">';
         $value .=       '<office:meta>';
-        foreach($this->meta as $meta_key => $meta_value)
-            $value .=       '<' . $meta_key . '>' . $this->_xmlEntities($meta_value) . '</' . $meta_key . '>';
-        foreach($this->meta_keyword as $keyword)
-            $value .=       '<meta:keyword>' . $this->_xmlEntities($keyword) . '</meta:keyword>';
-        foreach($this->meta_user as $meta_key => $meta_value)
-            $value .=       '<meta:user-defined meta:name="' . $this->_xmlEntities($meta_key) . '">' . $this->_xmlEntities($meta_value) . '</meta:user-defined>';
+    # FIXME
+    #    foreach($meta as $meta_key => $meta_value)
+    #        $value .=       '<' . $meta_key . '>' . ODUtils::encode($meta_value) . '</' . $meta_key . '>';
         $value .=       '</office:meta>';
         $value .=   '</office:document-meta>';
         $this->ZIP->add_File($value,'meta.xml');
@@ -1151,30 +1151,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         $name = $this->_odtFilterUserFieldName($name);
         if (array_key_exists($name, $this->fields)) {
             $this->doc .= '<text:user-field-get text:name="'.$name.'">'.$this->fields[$name].'</text:user-field-get>';
-        }
-    }
-
-    function _odtAddProperty($name, $value) {
-        // offical property or user-defined ?
-        if (in_array($name, array("title", "description", "subject", "creator"))) {
-            $this->meta["dc:".$name] = $value;
-        } elseif ($name == "keyword") {
-            foreach (split(",", $value) as $keyword) {
-                $this->meta_keyword []= trim($keyword);
-            }
-        } else {
-            $this->meta_user[$name] = $value;
-        }
-    }
-
-    function _odtInsertProperty($name) {
-        // offical property or user-defined ?
-        if (in_array($name, array("title", "description", "subject", "creator"))) {
-            $this->doc .= '<text:'.$name.'>'.$this->_xmlEntities($this->meta["dc:".$name]).'</text:'.$name.'>';
-        } elseif ($name == "keyword") {
-            $this->doc .= '<text:keywords>'.join(", ", array_map(array($this, "_xmlEntities"),$this->meta_keyword)).'</text:keywords>';
-        } else {
-            $this->doc .= '<text:user-defined text:name="'.$this->_xmlEntities($name).'">'.$this->_xmlEntities($this->meta_user[$name]).'</text:user-defined>';
         }
     }
 

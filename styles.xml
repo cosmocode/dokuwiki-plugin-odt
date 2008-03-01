@@ -108,16 +108,16 @@
             <style:graphic-properties text:anchor-type="paragraph" svg:x="0cm" svg:y="0cm" style:wrap="dynamic" style:number-wrapped-paragraphs="no-limit" style:wrap-contour="false" style:vertical-pos="top" style:vertical-rel="paragraph" style:horizontal-pos="center" style:horizontal-rel="paragraph"/>
         </style:style>
         <text:outline-style>
-            <text:outline-level-style text:level="1" style:num-format="1" style:num-suffix=".">
+            <text:outline-level-style text:level="1" style:num-format="">
                 <style:list-level-properties text:min-label-distance="0.381cm"/>
             </text:outline-level-style>
-            <text:outline-level-style text:level="2" style:num-format="1" style:num-suffix="." text:display-levels="2">
+            <text:outline-level-style text:level="2" style:num-format="">
                 <style:list-level-properties text:min-label-distance="0.381cm"/>
             </text:outline-level-style>
-            <text:outline-level-style text:level="3" style:num-format="1" style:num-suffix="." text:display-levels="3">
+            <text:outline-level-style text:level="3" style:num-format="">
                 <style:list-level-properties text:min-label-distance="0.381cm"/>
             </text:outline-level-style>
-            <text:outline-level-style text:level="4" style:num-format="1" style:num-suffix="." text:display-levels="4">
+            <text:outline-level-style text:level="4" style:num-format="">
                 <style:list-level-properties text:min-label-distance="0.381cm"/>
             </text:outline-level-style>
             <text:outline-level-style text:level="5" style:num-format="">
