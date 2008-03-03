@@ -1137,23 +1137,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         }
     }
 
-    function _odtFilterUserFieldName($name) {
-        // keep only allowed chars in the name
-        return preg_replace('/[^a-zA-Z0-9_.]/', '', $name);
-    }
-
-    function _odtAddUserField($name, $value) {
-        $name = $this->_odtFilterUserFieldName($name);
-        $this->fields[$name] = $value;
-    }
-
-    function _odtInsertUserField($name) {
-        $name = $this->_odtFilterUserFieldName($name);
-        if (array_key_exists($name, $this->fields)) {
-            $this->doc .= '<text:user-field-get text:name="'.$name.'">'.$this->fields[$name].'</text:user-field-get>';
-        }
-    }
-
 }
 
 //Setup VIM: ex: et ts=4 enc=utf-8 :
