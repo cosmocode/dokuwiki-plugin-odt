@@ -1,14 +1,25 @@
 ====== Dokuwiki ODT plugin ======
 
+This plugin lets you export wiki pages to ODT, the OpenDocument Text format as
+used by many applications, included OpenOffice.org
+
+Further documentation on the OpenDocument format is available here :
+http://en.wikipedia.org/wiki/OpenDocument
+
+
 ===== Official documentation =====
+
 For installation and usage documentation, please refer to 
 http://wiki.splitbrain.org/plugin:odt
 
 
 ===== Unpublished features =====
+
 This version of the plugin contains new experimental code, which may happen
-to work ( ;o) ) but is not yet documented on splitbrain.org. The new
-features are described here.
+to work ( ;o) ) but is not yet documented on splitbrain.org. Those new
+features have been submitted for inclusion, but may or may not be accepted
+(in general they are). As always, use (and depend on) those at your own
+risk.
 
 ==== Templates support ====
 You may now use templates to export your document. A template is a regular
