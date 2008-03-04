@@ -63,7 +63,7 @@ class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
         $info_type = $extinfo[0];
         if (count($extinfo) < 2) { // no value
             $info_value = '';
-        } elseif (count($field) == 2) {
+        } elseif (count($extinfo) == 2) {
             $info_value = $extinfo[1];
         } else { // value may contain colons
             $info_value = implode(array_slice($extinfo,1), ':');
