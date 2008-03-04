@@ -10,7 +10,6 @@
 if(!defined('DOKU_INC')) die();
 
 require_once DOKU_INC.'inc/parser/renderer.php';
-//require_once DOKU_INC.'inc/ZipLib.class.php';
 require_once 'ZipLib.class.php'; // contains the patches
 
 /**
