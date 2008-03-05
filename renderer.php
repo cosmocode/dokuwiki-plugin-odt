@@ -25,6 +25,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     var $headers = array();
     var $template = "";
     var $fields = array();
+    var $inlistitem = false;
     // Automatic styles. Will always be added to content.xml and styles.xml
     var $autostyles = array(
         "pm1"=>'
@@ -664,10 +665,12 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function listitem_open($level) {
+        $this->inlistitem = true;
         $this->doc .= '<text:list-item>';
     }
 
     function listitem_close() {
+        $this->inlistitem = false;
         $this->doc .= '</text:list-item>';
     }
 
@@ -759,12 +762,24 @@ class renderer_plugin_odt extends Doku_Renderer {
 
     function preformatted($text) {
         $text = $this->_xmlEntities($text);
+        if (strpos($text, "\n") !== FALSE and strpos($text, "\n") == 0) {
+            // text starts with a newline, remove it
+            $text = substr($text,1);
+        }
         $text = str_replace("\n",'<text:line-break/>',$text);
         $text = preg_replace_callback('/(  +)/',array('renderer_plugin_odt','_preserveSpace'),$text);
 
-        $this->doc .= '<text:p text:style-name="Preformatted_20_Text">';
-        $this->doc .= $text;
-        $this->doc .= '</text:p>';
+        if ($this->inlistitem) { // if we're in a list item, we must close the <text:p> tag
+            $this->doc .= '</text:p>';
+            $this->doc .= '<text:p text:style-name="Preformatted_20_Text">';
+            $this->doc .= $text;
+            $this->doc .= '</text:p>';
+            $this->doc .= '<text:p>';
+        } else {
+            $this->doc .= '<text:p text:style-name="Preformatted_20_Text">';
+            $this->doc .= $text;
+            $this->doc .= '</text:p>';
+        }
     }
 
     function file($text) {
