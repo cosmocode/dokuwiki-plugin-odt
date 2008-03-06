@@ -314,11 +314,6 @@ class renderer_plugin_odt extends Doku_Renderer {
     function document_end_template(){
         global $ID; // for the temp dir
 
-        // Prepare content
-        $autostyles = $this->_odtAutoStyles();
-        $missingstyles = $this->_odtStyles();
-        $missingfonts = $this->_odtFonts();
-        $userfields = $this->_odtUserFields();
         // Temp dir
         if (is_dir(DOKU_INC.'data/temp')) {
             $temp_dir = DOKU_INC.'data/temp'; // version > 20070626
@@ -328,9 +323,16 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->temp_dir = $temp_dir."/odt/".str_replace(':','-',$ID);
         if (is_dir($this->temp_dir)) { $this->io_rm_rf($this->temp_dir); }
         io_mkdir_p($this->temp_dir);
+
         // Extract template
         $template_path = DOKU_INC.'data/media/'.$this->getConf("tpl_dir")."/".$this->template;
         $this->ZIP->Extract($template_path, $this->temp_dir);
+
+        // Prepare content
+        $autostyles = $this->_odtAutoStyles();
+        $missingstyles = $this->_odtStyles();
+        $missingfonts = $this->_odtFonts();
+        $userfields = $this->_odtUserFields();
 
         // Insert content
         $old_content = io_readFile($this->temp_dir.'/content.xml');
