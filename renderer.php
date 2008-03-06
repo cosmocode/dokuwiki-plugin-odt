@@ -25,7 +25,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     var $headers = array();
     var $template = "";
     var $fields = array();
-    var $inlistitem = false;
+    var $in_paragraph = false;
     // Automatic styles. Will always be added to content.xml and styles.xml
     var $autostyles = array(
         "pm1"=>'
@@ -464,10 +464,12 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function p_open(){
+        $this->in_paragraph = true;
         $this->doc .= '<text:p text:style-name="Text_20_body">';
     }
 
     function p_close(){
+        $this->in_paragraph = false;
         $this->doc .= '</text:p>';
     }
 
@@ -667,12 +669,10 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function listitem_open($level) {
-        $this->inlistitem = true;
         $this->doc .= '<text:list-item>';
     }
 
     function listitem_close() {
-        $this->inlistitem = false;
         $this->doc .= '</text:list-item>';
     }
 
@@ -771,7 +771,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         $text = str_replace("\n",'<text:line-break/>',$text);
         $text = preg_replace_callback('/(  +)/',array('renderer_plugin_odt','_preserveSpace'),$text);
 
-        if ($this->inlistitem) { // if we're in a list item, we must close the <text:p> tag
+        if ($this->in_paragraph) { // if we're in a list item, we must close the <text:p> tag
             $this->doc .= '</text:p>';
             $this->doc .= '<text:p text:style-name="Preformatted_20_Text">';
             $this->doc .= $text;
@@ -789,11 +789,16 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function quote_open() {
-        $this->p_open();
+        if (!$this->in_paragraph) {
+            $this->p_open();
+        }
+        $this->doc .= "&gt;";
     }
 
     function quote_close() {
-        $this->p_close();
+        if ($this->in_paragraph) {
+            $this->p_close();
+        }
     }
 
     function code($text, $language = NULL) {
