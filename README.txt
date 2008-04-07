@@ -16,14 +16,6 @@ This version of the plugin supports Dokuwiki's latest version : 20070626 (you
 do not need the development version)
 
 
-===== Unpublished features =====
-
-This version of the plugin contains new experimental code, which may happen
-to work ( ;o) ) but is not yet documented on splitbrain.org. Those new
-features have been submitted for inclusion, but may or may not be accepted
-(in general they are). As always, use (and depend on) those at your own
-risk.
-
 ==== Templates support ====
 You may now use templates to export your document. A template is a regular
 ODT file, as produced by OpenOffice (for example, not tested with other ODT-
