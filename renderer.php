@@ -315,8 +315,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         global $ID; // for the temp dir
 
         // Temp dir
-        if (is_dir(DOKU_INC.'data/temp')) {
-            $temp_dir = DOKU_INC.'data/temp'; // version > 20070626
+        if (is_dir(DOKU_INC.'data/tmp')) {
+            $temp_dir = DOKU_INC.'data/tmp'; // version > 20070626
         } else {
             $temp_dir = DOKU_INC.'data/cache/tmp'; // version <= 20070626
         }
