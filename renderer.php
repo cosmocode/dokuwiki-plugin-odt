@@ -10,7 +10,14 @@
 if(!defined('DOKU_INC')) die();
 
 require_once DOKU_INC.'inc/parser/renderer.php';
-require_once 'ZipLib.class.php'; // contains the patches
+
+// ZipLib.class.php
+$dw_version = preg_replace('/[^\d]/', '', getversion());
+if (version_compare($dw_version, "20070626")) { // If strictly newer than 2007-06-26, fixes to ZipLib are included
+    require_once DOKU_INC.'inc/ZipLib.class.php';
+} else { // for DW up to 2007-06-26, we need the patched version
+    require_once 'ZipLib.class.php';
+}
 
 /**
  * The Renderer
