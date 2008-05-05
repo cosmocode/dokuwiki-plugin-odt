@@ -23,7 +23,6 @@ if (version_compare($dw_version, "20070626")) { // If strictly newer than 2007-0
  * The Renderer
  */
 class renderer_plugin_odt extends Doku_Renderer {
-    var $info = array("cache"=> false);
     var $ZIP = null;
     var $meta;
     var $store = '';
@@ -163,6 +162,12 @@ class renderer_plugin_odt extends Doku_Renderer {
     function document_start() {
         global $ID;
 
+        // If older or equal to 2007-06-26, we need to disable caching
+        $dw_version = preg_replace('/[^\d]/', '', getversion());
+        if (version_compare($dw_version, "20070626", "<=")) {
+            $this->info["cache"] = false;
+        }
+
         // prepare the zipper
         $this->ZIP = new ZipLib();
 
@@ -178,9 +183,19 @@ class renderer_plugin_odt extends Doku_Renderer {
                 'meta:editing-duration'     => 'PT0S',
             );
 
-        // send the content type header
-        header('Content-Type: application/vnd.oasis.opendocument.text');
-        header('Content-Disposition: attachment; filename="'.str_replace(':','-',$ID).'.odt";');
+        // send the content type header, new method after 2007-06-26 (handles caching)
+        $output_filename = str_replace(':','-',$ID).".odt";
+        if (version_compare($dw_version, "20070626")) {
+            // store the content type headers in metadata
+            $headers = array(
+                'Content-Type' => 'application/vnd.oasis.opendocument.text',
+                'Content-Disposition' => 'attachment; filename="'.$output_filename.'";',
+            );
+            p_set_metadata($ID,array('format' => array('odt' => $headers) ));
+        } else { // older method
+            header('Content-Type: application/vnd.oasis.opendocument.text');
+            header('Content-Disposition: attachment; filename="'.$output_filename.'";');
+        }
     }
 
     /**
