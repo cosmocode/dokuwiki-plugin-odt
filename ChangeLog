@@ -1,0 +1,16 @@
+2008-05-05  Aurélien Bompard <aurelien@bompard.org>
+
+	* README.txt, info.txt: update metadata for new release
+
+2008-05-05  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: use new headers/caching system if available
+
+2008-04-22  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: choose appropriate ZipLib file
+
+2008-04-21  Aurélien Bompard <aurelien@bompard.org>
+
+	* dokuwiki's future temp dir is data/tmp, not data/temp
+
