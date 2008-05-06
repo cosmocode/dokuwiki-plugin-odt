@@ -1,5 +1,9 @@
 2008-05-05  Aurélien Bompard <aurelien@bompard.org>
 
+	* ChangeLog: add ChangeLog (thanks to http://josefsson.org/git2cl/)
+
+2008-05-05  Aurélien Bompard <aurelien@bompard.org>
+
 	* README.txt, info.txt: update metadata for new release
 
 2008-05-05  Aurélien Bompard <aurelien@bompard.org>
