@@ -1,5 +1,13 @@
 2008-05-07  Aurélien Bompard <aurelien@bompard.org>
 
+	* info.txt: new release
+
+2008-05-07  Aurélien Bompard <aurelien@bompard.org>
+
+	* ChangeLog: update ChangeLog
+
+2008-05-07  Aurélien Bompard <aurelien@bompard.org>
+
 	* lang/es/lang.php, lang/es/settings.php: complete spanish
 	translation
 
@@ -59,4 +67,12 @@
 2008-03-06  root <root@shiva.c-s.fr>
 
 	* renderer.php: extract template before checking for the styles
+
+2008-03-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* syntax.php: leftover
+
+2008-03-05  root <root@shiva.c-s.fr>
+
+	* : Revert "leftover"
 
