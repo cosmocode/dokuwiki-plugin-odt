@@ -1,3 +1,20 @@
+2008-05-07  Aurélien Bompard <aurelien@bompard.org>
+
+	* lang/es/lang.php, lang/es/settings.php: complete spanish
+	translation
+
+2008-05-07  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php, syntax.php: leftover from history cleaning
+
+2008-05-07  Aurélien Bompard <aurelien@bompard.org>
+
+	* lang/es/lang.php: spanish translation, 1st part
+
+2008-05-06  Aurélien Bompard <aurelien@bompard.org>
+
+	* ChangeLog: add changelog in changelog...
+
 2008-05-05  Aurélien Bompard <aurelien@bompard.org>
 
 	* ChangeLog: add ChangeLog (thanks to http://josefsson.org/git2cl/)
@@ -16,5 +33,30 @@
 
 2008-04-21  Aurélien Bompard <aurelien@bompard.org>
 
-	* dokuwiki's future temp dir is data/tmp, not data/temp
+	* renderer.php: dokuwiki's future temp dir is data/tmp, not
+	data/temp
+
+2008-04-08  Aurélien Bompard <aurelien@bompard.org>
+
+	* README.txt, TODO, TODO.txt, info.txt: ready for release
+
+2008-04-08  Aurélien Bompard <aurelien@bompard.org>
+
+	* lang/it/lang.php: add italian translation
+
+2008-04-07  Aurélien Bompard <aurelien@bompard.org>
+
+	* README.txt, TODO, info.txt: get ready for release
+
+2008-03-08  Aurélien Bompard <aurelien@bompard.org>
+
+	* .gitignore: ignore Makefile
+
+2008-03-06  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: fix quotes
+
+2008-03-06  root <root@shiva.c-s.fr>
+
+	* renderer.php: extract template before checking for the styles
 
