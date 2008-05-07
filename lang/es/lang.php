@@ -1,6 +1,6 @@
 <?php
 /**
- * English language file
+ * Spanish language file
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Rodolfo Pilas <rodolfo@pilas.net>
@@ -15,5 +15,5 @@ $lang['direction']  = 'ltr';
 $lang['view'] = 'Exportar p&aacute;gina en formato Open Document';
 
 // template not found in the directory
-//$lang['tpl_not_found'] = '';
+$lang['tpl_not_found'] = 'ATENCION : la plantilla ODT "%s" no ha sido encontrada en el directorio de plantillas "%s". Se usa la plantilla por defecto.';
 
