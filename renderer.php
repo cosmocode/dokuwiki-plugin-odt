@@ -31,6 +31,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     var $headers = array();
     var $template = "";
     var $fields = array();
+    var $in_list_item = false;
     var $in_paragraph = false;
     // Automatic styles. Will always be added to content.xml and styles.xml
     var $autostyles = array(
@@ -691,10 +692,12 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function listitem_open($level) {
+        $this->in_list_item = true;
         $this->doc .= '<text:list-item>';
     }
 
     function listitem_close() {
+        $this->in_list_item = false;
         $this->doc .= '</text:list-item>';
     }
 
@@ -793,7 +796,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         $text = str_replace("\n",'<text:line-break/>',$text);
         $text = preg_replace_callback('/(  +)/',array('renderer_plugin_odt','_preserveSpace'),$text);
 
-        if ($this->in_paragraph) { // if we're in a list item, we must close the <text:p> tag
+        if ($this->in_list_item) { // if we're in a list item, we must close the <text:p> tag
             $this->doc .= '</text:p>';
             $this->doc .= '<text:p text:style-name="Preformatted_20_Text">';
             $this->doc .= $text;
@@ -811,14 +814,14 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function quote_open() {
-        if (!$this->in_paragraph) {
+        if (!$this->in_paragraph) { // only start a new par if we're not already in one
             $this->p_open();
         }
         $this->doc .= "&gt;";
     }
 
     function quote_close() {
-        if ($this->in_paragraph) {
+        if ($this->in_paragraph) { // only close the paragraph if we're actually in one
             $this->p_close();
         }
     }
