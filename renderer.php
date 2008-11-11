@@ -240,6 +240,15 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->ZIP->add_File($value,'META-INF/manifest.xml');
     }
 
+    /**
+     * Prepare settings.xml
+     */
+    function _odtSettings(){
+        $value  =   '<' . '?xml version="1.0" encoding="UTF-8"?' . ">\n";
+        $value .=   '<office:document-settings xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" office:version="1.0"><office:settings><config:config-item-set config:name="dummy-settings"><config:config-item config:name="MakeValidatorHappy" config:type="boolean">true</config:config-item></config:config-item-set></office:settings></office:document-settings>';
+        $this->ZIP->add_File($value,'settings.xml');
+    }
+
 
 
 
@@ -274,6 +283,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype');
 
         $this->_odtMeta();
+        $this->_odtSettings();
 
         $value  =   '<' . '?xml version="1.0" encoding="UTF-8"?' . ">\n";
         $value .=   '<office:document-content ';
@@ -487,13 +497,17 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function p_open(){
-        $this->in_paragraph = true;
-        $this->doc .= '<text:p text:style-name="Text_20_body">';
+        if (!$this->in_paragraph) { // opening a paragraph inside another paragraph is illegal
+            $this->in_paragraph = true;
+            $this->doc .= '<text:p text:style-name="Text_20_body">';
+        }
     }
 
     function p_close(){
-        $this->in_paragraph = false;
-        $this->doc .= '</text:p>';
+        if ($this->in_paragraph) {
+            $this->in_paragraph = false;
+            $this->doc .= '</text:p>';
+        }
     }
 
     function header($text, $level, $pos){
@@ -770,11 +784,21 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->doc .= $lang['doublequoteclosing'];
     }
 
-    function php($text) {
+    function php($text, $wrapper='dummy') {
+        $this->monospace_open();
+        $this->doc .= $this->_xmlEntities($text);
+        $this->monospace_close();
+    }
+    function phpblock($text) {
         $this->file($text);
     }
 
-    function html($text) {
+    function html($text, $wrapper='dummy') {
+        $this->monospace_open();
+        $this->doc .= $this->_xmlEntities($text);
+        $this->monospace_close();
+    }
+    function htmlblock($text) {
         $this->file($text);
     }
 
@@ -1127,7 +1151,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         $name = 'Pictures/'.md5($src).'.'.$ext;
         if(!$this->manifest[$name]){
             $this->manifest[$name] = $mime;
-            $this->ZIP->add_File(io_readfile($src,false),$name);
+            $this->ZIP->add_File(io_readfile($src,false),$name,0);
         }
         // make sure width and height is available
         // FIXME we don't have the dimension of an external file
