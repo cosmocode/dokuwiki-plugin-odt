@@ -1,6 +1,19 @@
+2009-01-15  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: don't compress mimetype declaration
+
+2008-11-11  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: more safeguards. wiki:syntax now passes validators
+
+2008-09-28  Aurélien Bompard <aurelien@bompard.org>
+
+	* lang/ja/lang.php, lang/ja/settings.php: Add Japanese translation
+	from Ikuo Obataya. Thanks !
+
 2008-05-07  Aurélien Bompard <aurelien@bompard.org>
 
-	* info.txt: new release
+	* ChangeLog, info.txt: new release
 
 2008-05-07  Aurélien Bompard <aurelien@bompard.org>
 
@@ -26,6 +39,7 @@
 2008-05-05  Aurélien Bompard <aurelien@bompard.org>
 
 	* ChangeLog: add ChangeLog (thanks to http://josefsson.org/git2cl/)
+
 
 2008-05-05  Aurélien Bompard <aurelien@bompard.org>
 
@@ -74,5 +88,56 @@
 
 2008-03-05  root <root@shiva.c-s.fr>
 
-	* : Revert "leftover"
+	* syntax.php: Revert "leftover"  This reverts commit
+	93d7c67d705f3a6a5847554b15384dc5a1a50de6.
+
+2008-03-05  root <root@shiva.c-s.fr>
+
+	* renderer.php: fix <code> tag in list items
+
+2008-03-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* syntax.php: leftover
+
+2008-03-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: cleanup for patch
+
+2008-03-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* README.txt, info.txt: even better doc
+
+2008-03-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* README.txt: better doc
+
+2008-03-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* README.txt: doc
+
+2008-03-03  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: spit into the fields plugin
+
+2008-03-01  Aurélien Bompard <aurelien@bompard.org>
+
+	* TODO, renderer.php, styles.xml, syntax.php: closer to upstream
+
+2008-03-01  Aurélien Bompard <aurelien@bompard.org>
+
+	* TODO, admin.php, conf/default.php, conf/metadata.php,
+	lang/de/lang.php, lang/en/lang.php, lang/en/settings.php,
+	lang/fr/lang.php, lang/fr/settings.php, renderer.php: niiice :)
+
+2008-02-29  Aurélien Bompard <aurelien@bompard.org>
+
+	* admin.php, lang/en/lang.php: bla
+
+2008-02-28  Aurélien Bompard <aurelien@bompard.org>
+
+	* admin.php, lang/en/lang.php: niice
+
+2008-05-07  Aurélien Bompard <aurelien@bompard.org>
+
+	* initial commit from existing repo
 

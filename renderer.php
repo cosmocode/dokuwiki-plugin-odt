@@ -280,7 +280,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         $userfields = $this->_odtUserFields();
 
         // add defaults
-        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype');
+        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
 
         $this->_odtMeta();
         $this->_odtSettings();
