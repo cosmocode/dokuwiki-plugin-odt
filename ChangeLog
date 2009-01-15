@@ -1,6 +1,10 @@
 2009-01-15  Aurélien Bompard <aurelien@bompard.org>
 
-	* renderer.php: don't compress mimetype declaration
+	* info.txt: prepare for new release
+
+2009-01-15  Aurélien Bompard <aurelien@bompard.org>
+
+	* ChangeLog, renderer.php: don't compress mimetype declaration
 
 2008-11-11  Aurélien Bompard <aurelien@bompard.org>
 
