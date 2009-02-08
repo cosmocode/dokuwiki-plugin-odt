@@ -169,9 +169,6 @@ class renderer_plugin_odt extends Doku_Renderer {
             $this->info["cache"] = false;
         }
 
-        // prepare the zipper
-        $this->ZIP = new ZipLib();
-
         // prepare meta data
         $this->meta             = array(
                 'meta:generator'            => 'DokuWiki '.getversion(),
@@ -216,7 +213,8 @@ class renderer_plugin_odt extends Doku_Renderer {
     #        $value .=       '<' . $meta_key . '>' . ODUtils::encode($meta_value) . '</' . $meta_key . '>';
         $value .=       '</office:meta>';
         $value .=   '</office:document-meta>';
-        $this->ZIP->add_File($value,'meta.xml');
+        $ZIP = $this->_getZip();
+        $ZIP->add_File($value,'meta.xml');
     }
 
     /**
@@ -237,7 +235,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         }
 
         $value .=   '</manifest:manifest>';
-        $this->ZIP->add_File($value,'META-INF/manifest.xml');
+        $ZIP = $this->_getZip();
+        $ZIP->add_File($value,'META-INF/manifest.xml');
     }
 
     /**
@@ -246,7 +245,8 @@ class renderer_plugin_odt extends Doku_Renderer {
     function _odtSettings(){
         $value  =   '<' . '?xml version="1.0" encoding="UTF-8"?' . ">\n";
         $value .=   '<office:document-settings xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" office:version="1.0"><office:settings><config:config-item-set config:name="dummy-settings"><config:config-item config:name="MakeValidatorHappy" config:type="boolean">true</config:config-item></config:config-item-set></office:settings></office:document-settings>';
-        $this->ZIP->add_File($value,'settings.xml');
+        $ZIP = $this->_getZip();
+        $ZIP->add_File($value,'settings.xml');
     }
 
 
@@ -268,7 +268,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         } else {
             $this->document_end_scratch();
         }
-        $this->doc = $this->ZIP->get_file();
+        $ZIP = $this->_getZip();
+        $this->doc = $ZIP->get_file();
     }
 
 
@@ -280,7 +281,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         $userfields = $this->_odtUserFields();
 
         // add defaults
-        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
+        $ZIP = $this->_getZip();
+        $ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
 
         $this->_odtMeta();
         $this->_odtSettings();
@@ -331,11 +333,11 @@ class renderer_plugin_odt extends Doku_Renderer {
         $value .=       '</office:body>';
         $value .=   '</office:document-content>';
 
-        $this->ZIP->add_File($value,'content.xml');
+        $ZIP->add_File($value,'content.xml');
 
         $value = io_readFile(DOKU_PLUGIN.'odt/styles.xml');
         $value = str_replace('<office:automatic-styles/>', $autostyles, $value);
-        $this->ZIP->add_File($value,'styles.xml');
+        $ZIP->add_File($value,'styles.xml');
 
         // build final manifest
         $this->_odtManifest();
@@ -359,7 +361,8 @@ class renderer_plugin_odt extends Doku_Renderer {
 
         // Extract template
         $template_path = DOKU_INC.'data/media/'.$this->getConf("tpl_dir")."/".$this->template;
-        $this->ZIP->Extract($template_path, $this->temp_dir);
+        $ZIP = $this->_getZip();
+        $ZIP->Extract($template_path, $this->temp_dir);
 
         // Prepare content
         $autostyles = $this->_odtAutoStyles();
@@ -390,7 +393,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->_odtReplaceInFile('</office:font-face-decls>', $missingfonts.'</office:font-face-decls>', $this->temp_dir.'/styles.xml');
 
         // Build the Zip
-        $this->ZIP->Compress(null, $this->temp_dir, null);
+        $ZIP->Compress(null, $this->temp_dir, null);
         $this->io_rm_rf($this->temp_dir);
     }
 
@@ -490,6 +493,14 @@ class renderer_plugin_odt extends Doku_Renderer {
             }
         }
         return $value;
+    }
+
+    function &_getZip() {
+        if ($this->ZIP == null) {
+            // prepare the zipper
+            $this->ZIP = new ZipLib();
+        }
+        return $this->ZIP;
     }
 
     function cdata($text) {
@@ -1151,7 +1162,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         $name = 'Pictures/'.md5($src).'.'.$ext;
         if(!$this->manifest[$name]){
             $this->manifest[$name] = $mime;
-            $this->ZIP->add_File(io_readfile($src,false),$name,0);
+            $ZIP = $this->_getZip();
+            $ZIP->add_File(io_readfile($src,false),$name,0);
         }
         // make sure width and height is available
         // FIXME we don't have the dimension of an external file
