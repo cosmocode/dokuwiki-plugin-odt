@@ -156,6 +156,13 @@ class renderer_plugin_odt extends Doku_Renderer {
         return "odt";
     }
 
+    /**
+     * Do not make multiple instances of this class
+     */
+    function isSingleton(){
+        return true;
+    }
+
 
     /**
      * Initialize the rendering
