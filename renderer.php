@@ -127,7 +127,7 @@ class renderer_plugin_odt extends Doku_Renderer {
                 <style:paragraph-properties fo:margin-left="0.5cm" fo:margin-right="0cm" fo:text-indent="-0.5cm" style:auto-text-indent="false" text:number-lines="false" text:line-number="0"/>
                 <style:text-properties fo:font-size="10pt" style:font-size-asian="10pt" style:font-size-complex="10pt"/>
             </style:style>',
-        "Emphases"=>'
+        "Emphasis"=>'
             <style:style style:name="Emphasis" style:family="text">
                 <style:text-properties fo:font-style="italic" style:font-style-asian="italic" style:font-style-complex="italic"/>
             </style:style>',
