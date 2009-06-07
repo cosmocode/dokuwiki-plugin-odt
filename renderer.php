@@ -13,7 +13,10 @@ require_once DOKU_INC.'inc/parser/renderer.php';
 
 // ZipLib.class.php
 $dw_version = preg_replace('/[^\d]/', '', getversion());
-if (version_compare($dw_version, "20070626") and version_compare(PHP_VERSION,'5.0.0','>')) { // If strictly newer than 2007-06-26 and use PHP5, fixes to ZipLib are included
+if (version_compare($dw_version, "20070626") and 
+    version_compare(PHP_VERSION,'5.0.0','>')) {
+    // If strictly newer than 2007-06-26 and use PHP5, fixes to ZipLib are
+    // included in Dokuwiki's ZipLib
     require_once DOKU_INC.'inc/ZipLib.class.php';
 } else { // for DW up to 2007-06-26, we need the patched version
     require_once 'ZipLib.class.php';
@@ -263,8 +266,9 @@ class renderer_plugin_odt extends Doku_Renderer {
      * Closes the document
      */
     function document_end(){
+        global $conf;
         if ($this->template) { // template chosen
-            if (file_exists(DOKU_INC.'data/media/'.$this->getConf("tpl_dir")."/".$this->template)) { //template found
+            if (file_exists($conf['savedir'].'/media/'.$this->getConf("tpl_dir")."/".$this->template)) { //template found
                 $this->document_end_template();
             } else { // template chosen but not found : warn the user and use the default template
                 $this->doc = '<text:p text:style-name="Text_20_body"><text:span text:style-name="Strong_20_Emphasis">'
@@ -352,20 +356,20 @@ class renderer_plugin_odt extends Doku_Renderer {
      * Closes the document using a template
      */
     function document_end_template(){
-        global $ID; // for the temp dir
+        global $conf, $ID; // for the temp dir
 
         // Temp dir
-        if (is_dir(DOKU_INC.'data/tmp')) {
-            $temp_dir = DOKU_INC.'data/tmp'; // version > 20070626
+        if (is_dir($conf['savedir'].'/tmp')) {
+            $temp_dir = $conf['savedir'].'/tmp'; // version > 20070626
         } else {
-            $temp_dir = DOKU_INC.'data/cache/tmp'; // version <= 20070626
+            $temp_dir = $conf['savedir'].'/cache/tmp'; // version <= 20070626
         }
         $this->temp_dir = $temp_dir."/odt/".str_replace(':','-',$ID);
         if (is_dir($this->temp_dir)) { $this->io_rm_rf($this->temp_dir); }
         io_mkdir_p($this->temp_dir);
 
         // Extract template
-        $template_path = DOKU_INC.'data/media/'.$this->getConf("tpl_dir")."/".$this->template;
+        $template_path = $conf['savedir'].'/media/'.$this->getConf("tpl_dir")."/".$this->template;
         $this->ZIP->Extract($template_path, $this->temp_dir);
 
         // Prepare content

@@ -1,6 +1,10 @@
 2009-06-07  Aurélien Bompard <aurelien@bompard.org>
 
-	* info.txt: release
+	* renderer.php: use ['savedir'] as suggested on the wiki page
+
+2009-06-07  Aurélien Bompard <aurelien@bompard.org>
+
+	* ChangeLog, info.txt: release
 
 2009-06-07  Aurélien Bompard <aurelien@bompard.org>
 
