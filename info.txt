@@ -2,7 +2,7 @@
 
 author Andreas Gohr, Aurelien Bompard
 email  andi@splitbrain.org, aurelien@bompard.org
-date   2009-02-11
+date   2009-06-07
 name   Open Document Plugin
 desc   Export the current Wiki page to a OpenOffice ODT file
 url    http://wiki.splitbrain.org/plugin:odt
