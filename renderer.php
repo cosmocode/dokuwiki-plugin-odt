@@ -268,7 +268,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     function document_end(){
         global $conf;
         if ($this->template) { // template chosen
-            if (file_exists($conf['savedir'].'/media/'.$this->getConf("tpl_dir")."/".$this->template)) { //template found
+            if (file_exists($conf['mediadir'].'/'.$this->getConf("tpl_dir")."/".$this->template)) { //template found
                 $this->document_end_template();
             } else { // template chosen but not found : warn the user and use the default template
                 $this->doc = '<text:p text:style-name="Text_20_body"><text:span text:style-name="Strong_20_Emphasis">'
@@ -359,8 +359,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         global $conf, $ID; // for the temp dir
 
         // Temp dir
-        if (is_dir($conf['savedir'].'/tmp')) {
-            $temp_dir = $conf['savedir'].'/tmp'; // version > 20070626
+        if (is_dir($conf['tmpdir'])) {
+            $temp_dir = $conf['tmpdir']; // version > 20070626
         } else {
             $temp_dir = $conf['savedir'].'/cache/tmp'; // version <= 20070626
         }
@@ -369,7 +369,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         io_mkdir_p($this->temp_dir);
 
         // Extract template
-        $template_path = $conf['savedir'].'/media/'.$this->getConf("tpl_dir")."/".$this->template;
+        $template_path = $conf['mediadir'].'/'.$this->getConf("tpl_dir")."/".$this->template;
         $this->ZIP->Extract($template_path, $this->temp_dir);
 
         // Prepare content
@@ -507,10 +507,10 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->doc .= $this->_xmlEntities($text);
     }
 
-    function p_open(){
+    function p_open($style='Text_20_body'){
         if (!$this->in_paragraph) { // opening a paragraph inside another paragraph is illegal
             $this->in_paragraph = true;
-            $this->doc .= '<text:p text:style-name="Text_20_body">';
+            $this->doc .= '<text:p text:style-name="'.$style.'">';
         }
     }
 
@@ -623,11 +623,11 @@ class renderer_plugin_odt extends Doku_Renderer {
             $this->doc .= ' table:number-columns-spanned="'.$colspan.'"';
         }
         $this->doc .= '>';
-        $this->doc .= '<text:p text:style-name="Table_20_Heading">';
+        $this->p_open('Table_20_Heading');
     }
 
     function tableheader_close(){
-        $this->doc .= '</text:p>';
+        $this->p_close();
         $this->doc .= '</table:table-cell>';
     }
 
@@ -639,11 +639,11 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->doc .= '>';
         if (!$align) $align = "left";
         $style = "tablealign".$align;
-        $this->doc .= '<text:p text:style-name="'.$style.'">';
+        $this->p_open($style);
     }
 
     function tablecell_close(){
-        $this->doc .= '</text:p>';
+        $this->p_close();
         $this->doc .= '</table:table-cell>';
     }
 
@@ -701,6 +701,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function listu_open() {
+        $this->p_close();
         $this->doc .= '<text:list text:style-name="List_20_1">';
     }
 
@@ -709,6 +710,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function listo_open() {
+        $this->p_close();
         $this->doc .= '<text:list text:style-name="Numbering_20_1">';
     }
 
