@@ -1,6 +1,10 @@
 2009-07-02  Aurélien Bompard <aurelien@bompard.org>
 
-	* renderer.php: Fixes from Andy Webber (thanks !)
+	* info.txt: prepare for release
+
+2009-07-02  Aurélien Bompard <aurelien@bompard.org>
+
+	* ChangeLog, renderer.php: Fixes from Andy Webber (thanks !)
 
 2009-06-07  Aurélien Bompard <aurelien@bompard.org>
 
