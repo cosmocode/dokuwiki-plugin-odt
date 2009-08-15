@@ -74,10 +74,10 @@ class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
      * Create output
      */
     function render($format, &$renderer, $data) {
-        global $ID;
+        global $ID, $REV;
         if (!$data) { // Export button
             if($format != 'xhtml') return false;
-            $renderer->doc .= '<a href="'.exportlink($ID, 'odt').'" title="'.$this->getLang('view').'">';
+            $renderer->doc .= '<a href="'.exportlink($ID, 'odt', ($REV != '' ? 'rev='.$REV : '')).'" title="'.$this->getLang('view').'">';
             $renderer->doc .= '<img src="'.DOKU_BASE.'lib/plugins/odt/odt.png" align="right" alt="'.$this->getLang('view').'" width="48" height="48" />';
             $renderer->doc .= '</a>';
             return true;
