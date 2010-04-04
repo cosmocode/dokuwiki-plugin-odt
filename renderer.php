@@ -387,6 +387,13 @@ class renderer_plugin_odt extends Doku_Renderer {
             $this->_odtReplaceInFile('</office:text>', $this->doc.'</office:text>', $this->temp_dir.'/content.xml');
         }
 
+        // Cut off unwanted content
+        if (strpos($old_content, 'DOKUWIKI-ODT-CUT-START') !== FALSE 
+                && strpos($old_content, 'DOKUWIKI-ODT-CUT-STOP') !== FALSE) {
+            $this->_odtReplaceInFile('/DOKUWIKI-ODT-CUT-START.*DOKUWIKI-ODT-CUT-STOP/', 
+                '', $this->temp_dir.'/content.xml', true);
+        }
+
         // Insert userfields
         if (strpos($old_content, "text:user-field-decls") === FALSE) { // no existing userfields
             $this->_odtReplaceInFile('/<office:text([^>]*)>/U', '<office:text\1>'.$userfields, $this->temp_dir.'/content.xml', TRUE);
