@@ -1,6 +1,57 @@
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	Merge branch 'master' of
+	git@gitorious.org:dokuwiki-odt/dokuwiki-odt
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: Fix a small syntax error
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	Merge branch 'master' of gitorious.org:dokuwiki-odt/dokuwiki-odt
+
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: Better tag replacement in the template ODT file
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* README.txt, info.txt: Prepare for a new release
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: Add options to cut off a part of the ODT template
+	In an ODT file, the only styles that will be saved are the styles
+	which are applied to some content in the document. If you want to
+	create an empty ODT document for this plugin, and still want to
+	define styles which will be applied to the wiki content, you have to
+	write some dummy text, apply the styles to this text, and surround
+	the text in the DOKUWIKI-ODT-CUT-START and DOKUWIKI-ODT-CUT-STOP
+	tags. This way, the styles will be retained in the ODT file, but the
+	dummy text will be removed on export.
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: Better tag replacement in the template ODT file
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: Better tag replacement in the template ODT file
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: replace with unicode entities instead of HTML (not
+	always defined)
+
+2009-08-15  Martin Braure de Calignon <braure@free.fr>
+
+	* syntax.php: Fix button link to export old revisions
+
 2009-07-02  Aurélien Bompard <aurelien@bompard.org>
 
-	* info.txt: prepare for release
+	* ChangeLog, info.txt: prepare for release
 
 2009-07-02  Aurélien Bompard <aurelien@bompard.org>
 
