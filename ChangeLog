@@ -1,24 +1,6 @@
 2010-04-04  Aurélien Bompard <aurelien@bompard.org>
 
-	Merge branch 'master' of
-	git@gitorious.org:dokuwiki-odt/dokuwiki-odt
-
-2010-04-04  Aurélien Bompard <aurelien@bompard.org>
-
-	* renderer.php: Fix a small syntax error
-
-2010-04-04  Aurélien Bompard <aurelien@bompard.org>
-
-	Merge branch 'master' of gitorious.org:dokuwiki-odt/dokuwiki-odt
-
-
-2010-04-04  Aurélien Bompard <aurelien@bompard.org>
-
-	* renderer.php: Better tag replacement in the template ODT file
-
-2010-04-04  Aurélien Bompard <aurelien@bompard.org>
-
-	* README.txt, info.txt: Prepare for a new release
+	* README.txt, info.txt, ChangeLog: Prepare for a new release
 
 2010-04-04  Aurélien Bompard <aurelien@bompard.org>
 
@@ -34,7 +16,7 @@
 
 2010-04-04  Aurélien Bompard <aurelien@bompard.org>
 
-	* renderer.php: Better tag replacement in the template ODT file
+	* renderer.php: Fix a small syntax error
 
 2010-04-04  Aurélien Bompard <aurelien@bompard.org>
 
