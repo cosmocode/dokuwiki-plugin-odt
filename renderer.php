@@ -1091,7 +1091,7 @@ class renderer_plugin_odt extends Doku_Renderer {
 
 
     function _xmlEntities($value) {
-        return str_replace( array('&','"',"'",'<','>'), array('&amp;','&quot;','&apos;','&lt;','&gt;'), $value);
+        return str_replace( array('&','"',"'",'<','>'), array('&#38;','&#34;','&#39;','&#60;','&#62;'), $value);
     }
 
     function rss ($url,$params){
