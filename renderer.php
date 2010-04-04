@@ -381,8 +381,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         // Insert content
         $old_content = io_readFile($this->temp_dir.'/content.xml');
         if (strpos($old_content, 'DOKUWIKI-ODT-INSERT') !== FALSE) { // Replace the mark
-            $this->_odtReplaceInFile('DOKUWIKI-ODT-INSERT', 
-                '</text:p>'.$this->doc.'<text:p text:style-name="Text_20_body">', $this->temp_dir.'/content.xml');
+            $this->_odtReplaceInFile('/<text:p[^>]*>DOKUWIKI-ODT-INSERT</text:p>/', 
+                $this->doc, $this->temp_dir.'/content.xml', true);
         } else { // Append to the template
             $this->_odtReplaceInFile('</office:text>', $this->doc.'</office:text>', $this->temp_dir.'/content.xml');
         }
