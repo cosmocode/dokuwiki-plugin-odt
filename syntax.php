@@ -85,6 +85,7 @@ class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
             list($info_type, $info_value) = $data;
             if ($info_type == "template") { // Template-based export
                 $renderer->template = $info_value;
+                p_set_metadata($ID, array("relation"=> array("odt"=>array("template"=>$info_value))));
             }
         }
         return false;
