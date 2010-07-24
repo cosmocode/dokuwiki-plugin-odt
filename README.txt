@@ -10,7 +10,7 @@ http://en.wikipedia.org/wiki/OpenDocument
 ===== Official documentation =====
 
 For installation and usage documentation, please refer to 
-http://wiki.splitbrain.org/plugin:odt
+http://www.dokuwiki.org/plugin:odt
 
 This version of the plugin works with Dokuwiki 2007-06-26 and later.
 

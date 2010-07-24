@@ -1,6 +1,40 @@
+2010-07-17  Aurélien Bompard <aurelien@bompard.org>
+
+	* action.php, syntax.php: Better handling of the cache system  The
+	template used for the ODT export is now added in the page's
+	dependencies, so the cached ODT page will not be used if the
+	template has been updated.
+
+2010-05-24  Aurélien Bompard <aurelien@bompard.org>
+
+	* lang/ru/lang.php, lang/ru/settings.php: Add translation by Yuri
+	Timofeev
+
+2010-05-12  Aurélien Bompard <aurelien@bompard.org>
+
+	* lang/zh/lang.php, lang/zh/settings.php: Add Chinese translation by
+	lainme
+
 2010-04-04  Aurélien Bompard <aurelien@bompard.org>
 
-	* README.txt, info.txt, ChangeLog: Prepare for a new release
+	* ChangeLog, ChangeLog.txt: Add .txt to the ChangeLog for our
+	Windows-based friends
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* ChangeLog: Cleanup changelog
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: Fix a small syntax error
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* renderer.php: Better tag replacement in the template ODT file
+
+2010-04-04  Aurélien Bompard <aurelien@bompard.org>
+
+	* README.txt, info.txt: Prepare for a new release
 
 2010-04-04  Aurélien Bompard <aurelien@bompard.org>
 
@@ -16,7 +50,7 @@
 
 2010-04-04  Aurélien Bompard <aurelien@bompard.org>
 
-	* renderer.php: Fix a small syntax error
+	* renderer.php: Better tag replacement in the template ODT file
 
 2010-04-04  Aurélien Bompard <aurelien@bompard.org>
 
