@@ -118,8 +118,16 @@ class renderer_plugin_odt extends Doku_Renderer {
             </style:style>',
         "Preformatted_20_Text"=>'
             <style:style style:name="Preformatted_20_Text" style:display-name="Preformatted Text" style:family="paragraph" style:parent-style-name="Standard" style:class="html">
-                <style:paragraph-properties fo:margin-top="0cm" fo:margin-bottom="0cm"/>
+                <style:paragraph-properties fo:margin-top="0cm" fo:margin-bottom="0.2cm"/>
                 <style:text-properties style:font-name="Bitstream Vera Sans Mono" style:font-name-asian="Bitstream Vera Sans Mono" style:font-name-complex="Bitstream Vera Sans Mono"/>
+            </style:style>',
+        "Source_20_Code"=>'
+            <style:style style:name="Source_20_Code" style:display-name="Source Code" style:family="paragraph" style:parent-style-name="Preformatted_20_Text">
+                <style:paragraph-properties fo:padding="0.05cm" style:shadow="none" fo:border="0.002cm solid #8cacbb" fo:background-color="#f7f9fa"/>
+            </style:style>',
+        "Source_20_File"=>'
+            <style:style style:name="Source_20_File" style:display-name="Source File" style:family="paragraph" style:parent-style-name="Preformatted_20_Text">
+                <style:paragraph-properties fo:padding="0.05cm" style:shadow="none" fo:border="0.002cm solid #8cacbb" fo:background-color="#f1f4f5"/>
             </style:style>',
         "Horizontal_20_Line"=>'
             <style:style style:name="Horizontal_20_Line" style:display-name="Horizontal Line" style:family="paragraph" style:parent-style-name="Standard" style:next-style-name="Text_20_body" style:class="html">
@@ -839,7 +847,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function file($text, $language=null, $filename=null) {
-        $this->_highlight($text, $language);
+        $this->_highlight('file', $text, $language);
     }
 
     function quote_open() {
@@ -856,10 +864,10 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function code($text, $language=null, $filename=null) {
-        $this->_highlight($text, $language);
+        $this->_highlight('code', $text, $language);
     }
 
-    function _preformatted($text, $notescaped=true) {
+    function _preformatted($text, $style="Preformatted_20_Text", $notescaped=true) {
         if ($notescaped) {
             $text = $this->_xmlEntities($text);
         }
@@ -872,26 +880,29 @@ class renderer_plugin_odt extends Doku_Renderer {
 
         if ($this->in_list_item) { // if we're in a list item, we must close the <text:p> tag
             $this->doc .= '</text:p>';
-            $this->doc .= '<text:p text:style-name="Preformatted_20_Text">';
+            $this->doc .= '<text:p text:style-name="'.$style.'">';
             $this->doc .= $text;
             $this->doc .= '</text:p>';
             $this->doc .= '<text:p>';
         } else {
-            $this->doc .= '<text:p text:style-name="Preformatted_20_Text">';
+            $this->doc .= '<text:p text:style-name="'.$style.'">';
             $this->doc .= $text;
             $this->doc .= '</text:p>';
         }
     }
 
-    function _highlight($text, $language=null) {
+    function _highlight($type, $text, $language=null) {
         global $conf;
+        $style_name = "Source_20_Code";
+        if ($type == "file") $style_name = "Source_20_File";
+
         if (is_null($language)) {
-            $this->_preformatted($text);
+            $this->_preformatted($text, $style_name);
             return;
         }
+
         // from inc/parserutils.php:p_xhtml_cached_geshi()
         require_once(DOKU_INC . 'inc/geshi.php');
-
         $geshi = new GeSHi($text, $language, DOKU_INC . 'inc/geshi');
         $geshi->set_encoding('utf-8');
         // $geshi->enable_classes(); DO NOT WANT !
@@ -901,10 +912,16 @@ class renderer_plugin_odt extends Doku_Renderer {
         // remove GeSHi's wrapper element (we'll replace it with our own later)
         // we need to use a GeSHi wrapper to avoid <BR> throughout the highlighted text
         $highlighted_code = trim(preg_replace('!^<pre[^>]*>|</pre>$!','',$geshi->parse_code()),"\n\r");
+        // remove useless leading and trailing whitespace-newlines
+        $highlighted_code = preg_replace('/^&nbsp;\n/','',$highlighted_code);
+        $highlighted_code = preg_replace('/\n&nbsp;$/','',$highlighted_code);
+        // replace styles
         $highlighted_code = str_replace("</span>", "</text:span>", $highlighted_code);
         $highlighted_code = preg_replace_callback('/<span style="([^"]+)">/', array('renderer_plugin_odt','_convert_css_styles'), $highlighted_code);
+        // cleanup leftover span tags
+        $highlighted_code = preg_replace('/<span[^>]*>/', "<text:span>", $highlighted_code);
         $highlighted_code = str_replace("&nbsp;", "&#xA0;", $highlighted_code);
-        $this->_preformatted($highlighted_code, false);
+        $this->_preformatted($highlighted_code, $style_name, false);
     }
 
     function _convert_css_styles($matches) {
@@ -933,7 +950,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         // add the style to the library
         $this->autostyles[$style_name] = $style_content;
         // now make use of the new style
-        return '<text:span text:style-name="'.$style_name.'"><!-- '.$matches[1].' -->';
+        return '<text:span text:style-name="'.$style_name.'">';
     }
 
     function internalmedia ($src, $title=NULL, $align=NULL, $width=NULL,
