@@ -36,6 +36,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     var $fields = array();
     var $in_list_item = false;
     var $in_paragraph = false;
+    var $highlight_style_num = 1;
     // Automatic styles. Will always be added to content.xml and styles.xml
     var $autostyles = array(
         "pm1"=>'
@@ -194,6 +195,7 @@ class renderer_plugin_odt extends Doku_Renderer {
                 'meta:editing-duration'     => 'PT0S',
             );
 
+        //$headers = array('Content-Type'=>'text/plain'); p_set_metadata($ID,array('format' => array('odt' => $headers) )); return ; // DEBUG
         // send the content type header, new method after 2007-06-26 (handles caching)
         $output_filename = str_replace(':','-',$ID).".odt";
         if (version_compare($dw_version, "20070626")) {
@@ -267,6 +269,7 @@ class renderer_plugin_odt extends Doku_Renderer {
      */
     function document_end(){
         global $conf;
+        //$this->doc .= $this->_odtAutoStyles(); return; // DEBUG
         if ($this->template) { // template chosen
             if (file_exists($conf['mediadir'].'/'.$this->getConf("tpl_dir")."/".$this->template)) { //template found
                 $this->document_end_template();
@@ -832,7 +835,34 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function preformatted($text) {
-        $text = $this->_xmlEntities($text);
+        $this->_preformatted($text);
+    }
+
+    function file($text, $language=null, $filename=null) {
+        $this->_highlight($text, $language);
+    }
+
+    function quote_open() {
+        if (!$this->in_paragraph) { // only start a new par if we're not already in one
+            $this->p_open();
+        }
+        $this->doc .= "&gt;";
+    }
+
+    function quote_close() {
+        if ($this->in_paragraph) { // only close the paragraph if we're actually in one
+            $this->p_close();
+        }
+    }
+
+    function code($text, $language=null, $filename=null) {
+        $this->_highlight($text, $language);
+    }
+
+    function _preformatted($text, $notescaped=true) {
+        if ($notescaped) {
+            $text = $this->_xmlEntities($text);
+        }
         if (strpos($text, "\n") !== FALSE and strpos($text, "\n") == 0) {
             // text starts with a newline, remove it
             $text = substr($text,1);
@@ -853,26 +883,57 @@ class renderer_plugin_odt extends Doku_Renderer {
         }
     }
 
-    function file($text) {
-        $this->preformatted($text);
-    }
-
-    function quote_open() {
-        if (!$this->in_paragraph) { // only start a new par if we're not already in one
-            $this->p_open();
+    function _highlight($text, $language=null) {
+        global $conf;
+        if (is_null($language)) {
+            $this->_preformatted($text);
+            return;
         }
-        $this->doc .= "&gt;";
+        // from inc/parserutils.php:p_xhtml_cached_geshi()
+        require_once(DOKU_INC . 'inc/geshi.php');
+
+        $geshi = new GeSHi($text, $language, DOKU_INC . 'inc/geshi');
+        $geshi->set_encoding('utf-8');
+        // $geshi->enable_classes(); DO NOT WANT !
+        $geshi->set_header_type(GESHI_HEADER_PRE);
+        $geshi->enable_keyword_links(false);
+
+        // remove GeSHi's wrapper element (we'll replace it with our own later)
+        // we need to use a GeSHi wrapper to avoid <BR> throughout the highlighted text
+        $highlighted_code = trim(preg_replace('!^<pre[^>]*>|</pre>$!','',$geshi->parse_code()),"\n\r");
+        $highlighted_code = str_replace("</span>", "</text:span>", $highlighted_code);
+        $highlighted_code = preg_replace_callback('/<span style="([^"]+)">/', array('renderer_plugin_odt','_convert_css_styles'), $highlighted_code);
+        $highlighted_code = str_replace("&nbsp;", "&#xA0;", $highlighted_code);
+        $this->_preformatted($highlighted_code, false);
     }
 
-    function quote_close() {
-        if ($this->in_paragraph) { // only close the paragraph if we're actually in one
-            $this->p_close();
+    function _convert_css_styles($matches) {
+        $all_css_styles = $matches[1];
+        // parse the CSS attribute
+        $css_styles = array();
+        foreach(explode(";", $all_css_styles) as $css_style) {
+            $css_style_array = explode(":", $css_style);
+            if (!trim($css_style_array[0]) or !trim($css_style_array[1])) {
+                continue;
+            }
+            $css_styles[trim($css_style_array[0])] = trim($css_style_array[1]);
         }
-    }
-
-    function code($text, $language = NULL) {
-        // FIXME we could convert GeSHi HTML and CSS classes to ODT XML here
-        $this->preformatted($text);
+        // create the ODT xml style
+        $style_name = "highlight." . $this->highlight_style_num;
+        $this->highlight_style_num += 1;
+        $style_content = '
+            <style:style style:name="'.$style_name.'" style:family="text">
+                <style:text-properties ';
+        foreach($css_styles as $style_key=>$style_value) {
+            // Hats off to those who thought out the OpenDocument spec: styling syntax is similar to CSS !
+            $style_content .= 'fo:'.$style_key.'="'.$style_value.'" ';
+        }
+        $style_content .= '/>
+            </style:style>';
+        // add the style to the library
+        $this->autostyles[$style_name] = $style_content;
+        // now make use of the new style
+        return '<text:span text:style-name="'.$style_name.'"><!-- '.$matches[1].' -->';
     }
 
     function internalmedia ($src, $title=NULL, $align=NULL, $width=NULL,
