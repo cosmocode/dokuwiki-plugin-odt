@@ -1,3 +1,7 @@
+HEAD  Aurélien Bompard <aurelien@bompard.org>
+
+	* action.php: Add getInfo() method, fixes bug #8
+
 2010-08-12  Aurélien Bompard <aurelien@bompard.org>
 
 	* renderer.php, styles.xml: Syntax highlighting support

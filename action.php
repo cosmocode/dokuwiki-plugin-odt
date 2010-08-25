@@ -16,6 +16,13 @@ require_once(DOKU_PLUGIN.'action.php');
  */
 class action_plugin_odt extends DokuWiki_Action_Plugin {
 
+    /**
+     * return some info
+     */
+    function getInfo(){
+        return confToHash(dirname(__FILE__).'/info.txt');
+    }
+
     function register($controller) {
         $controller->register_hook('PARSER_CACHE_USE','BEFORE', $this, 'handle_cache_prepare');
     }
