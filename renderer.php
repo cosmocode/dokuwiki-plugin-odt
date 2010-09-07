@@ -250,14 +250,18 @@ class renderer_plugin_odt extends Doku_Renderer {
         $value .=   '<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="meta.xml"/>';
         $value .=   '<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="content.xml"/>';
         $value .=   '<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="styles.xml"/>';
+        $value .= $this->_odtGetManifest();
+        $value .=   '</manifest:manifest>';
+        $this->ZIP->add_File($value,'META-INF/manifest.xml');
+    }
 
+    function _odtGetManifest() {
+        $value = '';
         foreach($this->manifest as $path => $type){
             $value .= '<manifest:file-entry manifest:media-type="'.$this->_xmlEntities($type).
                       '" manifest:full-path="'.$this->_xmlEntities($path).'"/>';
         }
-
-        $value .=   '</manifest:manifest>';
-        $this->ZIP->add_File($value,'META-INF/manifest.xml');
+        return $value;
     }
 
     /**
@@ -420,6 +424,9 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->_odtReplaceInFile('</office:automatic-styles>', substr($autostyles, 25), $this->temp_dir.'/styles.xml');
         $this->_odtReplaceInFile('</office:styles>', $missingstyles.'</office:styles>', $this->temp_dir.'/styles.xml');
         $this->_odtReplaceInFile('</office:font-face-decls>', $missingfonts.'</office:font-face-decls>', $this->temp_dir.'/styles.xml');
+
+        // Add manifest data
+        $this->_odtReplaceInFile('</manifest:manifest>', $this->_odtGetManifest() . '</manifest:manifest>', $this->temp_dir . '/META-INF/manifest.xml');
 
         // Build the Zip
         $this->ZIP->Compress(null, $this->temp_dir, null);
