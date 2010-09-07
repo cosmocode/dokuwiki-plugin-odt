@@ -278,6 +278,9 @@ class renderer_plugin_odt extends Doku_Renderer {
     function document_end(){
         global $conf;
         //$this->doc .= $this->_odtAutoStyles(); return; // DEBUG
+
+        $this->doc = preg_replace('#<text:p[^>]*>\s*</text:p>#', '', $this->doc);
+
         if ($this->template) { // template chosen
             if (file_exists($conf['mediadir'].'/'.$this->getConf("tpl_dir")."/".$this->template)) { //template found
                 $this->document_end_template();
