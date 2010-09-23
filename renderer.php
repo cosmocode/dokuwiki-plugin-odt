@@ -876,6 +876,7 @@ class renderer_plugin_odt extends Doku_Renderer {
             $text = substr($text,1);
         }
         $text = str_replace("\n",'<text:line-break/>',$text);
+        $text = str_replace("\t",'<text:tab/>',$text);
         $text = preg_replace_callback('/(  +)/',array('renderer_plugin_odt','_preserveSpace'),$text);
 
         if ($this->in_list_item) { // if we're in a list item, we must close the <text:p> tag
