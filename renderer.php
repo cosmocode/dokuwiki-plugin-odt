@@ -634,11 +634,14 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->doc .= '</table:table-row>';
     }
 
-    function tableheader_open($colspan = 1, $align = "left"){
+    function tableheader_open($colspan = 1, $align = "left", $rowspan = 1){
         $this->doc .= '<table:table-cell office:value-type="string" table:style-name="tableheader" ';
         //$this->doc .= ' table:style-name="tablealign'.$align.'"';
         if ( $colspan > 1 ) {
             $this->doc .= ' table:number-columns-spanned="'.$colspan.'"';
+        }
+        if ( $rowspan > 1 ) {
+            $this->doc .= ' table:number-rows-spanned="'.$rowspan.'"';
         }
         $this->doc .= '>';
         $this->p_open('Table_20_Heading');
@@ -649,10 +652,13 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->doc .= '</table:table-cell>';
     }
 
-    function tablecell_open($colspan = 1, $align = "left"){
+    function tablecell_open($colspan = 1, $align = "left", $rowspan = 1){
         $this->doc .= '<table:table-cell office:value-type="string" table:style-name="tablecell" ';
         if ( $colspan > 1 ) {
             $this->doc .= ' table:number-columns-spanned="'.$colspan.'"';
+        }
+        if ( $rowspan > 1 ) {
+            $this->doc .= ' table:number-rows-spanned="'.$rowspan.'"';
         }
         $this->doc .= '>';
         if (!$align) $align = "left";
