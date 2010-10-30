@@ -993,30 +993,23 @@ class renderer_plugin_odt extends Doku_Renderer {
         list($ext,$mime) = mimetype($src);
 
         if(substr($mime,0,5) == 'image'){
-            if($width) {
-                $width  = 'svg:width="'.(($width/96.0)*2.54).'cm"';
-            } else {
-                $width  = 'svg:rel-width="100%"';
+            $tmp_dir = $conf['tmpdir']."/odt";
+            $tmp_name = $tmp_dir."/".md5($src).'.'.$ext;
+            $final_name = 'Pictures/'.md5($tmp_name).'.'.$ext;
+            if(!isset($this->manifest[$final_name])){
+                $client = new DokuHTTPClient;
+                $img = $client->get($src);
+                if ($img === FALSE) {
+                    $tmp_name = $src; // fallback to a simple link
+                } else {
+                    if (!is_dir($tmp_dir)) io_mkdir_p($tmp_dir);
+                    $tmp_img = fopen($tmp_name, "w") or die("Can't create temp file $tmp_img");
+                    fwrite($tmp_img, $img);
+                    fclose($tmp_img);
+                }
             }
-            if($height) {
-                $height  = 'svg:height="'.(($height/96.0)*2.54).'cm"';
-            } else {
-                $height  = 'svg:rel-height="100%"';
-            }
-
-            $style = 'media'.$align;
-            if($align){
-                $anchor = 'paragraph';
-            }else{
-                $anchor = 'as-char';
-            }
-
-            $this->doc .= '<draw:frame draw:style-name="'.$style.'" draw:name="'.$this->_xmlEntities($title).'"
-                            text:anchor-type="'.$anchor.'" draw:z-index="0"
-                            '.$width.' '.$height.' >';
-            $this->doc .= '<draw:image xlink:href="'.$this->_xmlEntities($src).'"
-                            xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>';
-            $this->doc .= '</draw:frame>';
+            $this->_odtAddImage($tmp_name, $width, $height, $align, $title);
+            if (file_exists($tmp_name)) unlink($tmp_name);
         }else{
             $this->externallink($src,$title);
         }
@@ -1262,37 +1255,19 @@ class renderer_plugin_odt extends Doku_Renderer {
 
 
     function _odtAddImage($src, $width = NULL, $height = NULL, $align = NULL, $title = NULL, $style = NULL){
-        list($ext,$mime) = mimetype($src);
-        $name = 'Pictures/'.md5($src).'.'.$ext;
-        if(!$this->manifest[$name]){
-            $this->manifest[$name] = $mime;
-            $this->ZIP->add_File(io_readfile($src,false),$name,0);
-        }
-        // make sure width and height is available
-        // FIXME we don't have the dimension of an external file
-        // (except it's cached, but this is not the default) there seems
-        // to be no way to specify "use original image" in ODF - thus
-        // a hardcoded default size of 200 pixel here
-        if(!$width || !$height){
-            $info  = getimagesize($src);
-            if(!$width){
-                $width  = $info[0];
-                $height = $info[1];
-            }else{
-                $height = round(($width * $info[1]) / $info[0]);
+        if (file_exists($src)) {
+            list($ext,$mime) = mimetype($src);
+            $name = 'Pictures/'.md5($src).'.'.$ext;
+            if(!$this->manifest[$name]){
+                $this->manifest[$name] = $mime;
+                $this->ZIP->add_File(io_readfile($src,false),$name,0);
             }
-        }
-
-        // convert from pixel to centimeters
-        $width  = (($width/96.0)*2.54);
-        $height = (($height/96.0)*2.54);
-        // Don't be wider than the page
-        if ($width >= 17){ // FIXME : this assumes A4 page format with 2cm margins
-            $width = $width.'cm"  style:rel-width="100%';
-            $height = $height.'cm"  style:rel-height="scale';
         } else {
-            $width = $width.'cm';
-            $height = $height.'cm';
+            $name = $src;
+        }
+        // make sure width and height are available
+        if (!$width || !$height) {
+            list($width, $height) = $this->_odtGetImageSize($src, $width, $height);
         }
 
         if($align){
@@ -1320,6 +1295,46 @@ class renderer_plugin_odt extends Doku_Renderer {
         if ($title) {
             $this->doc .= $this->_xmlEntities($title).'</text:p></draw:text-box></draw:frame>';
         }
+    }
+
+    function _odtGetImageSize($src, $width = NULL, $height = NULL){
+        if (file_exists($src)) {
+            $info  = getimagesize($src);
+            if(!$width){
+                $width  = $info[0];
+                $height = $info[1];
+            }else{
+                $height = round(($width * $info[1]) / $info[0]);
+            }
+        }
+
+        // convert from pixel to centimeters
+        if ($width) $width = (($width/96.0)*2.54);
+        if ($height) $height = (($height/96.0)*2.54);
+
+        if ($width && $height) {
+            // Don't be wider than the page
+            if ($width >= 17){ // FIXME : this assumes A4 page format with 2cm margins
+                $width = $width.'cm"  style:rel-width="100%';
+                $height = $height.'cm"  style:rel-height="scale';
+            } else {
+                $width = $width.'cm';
+                $height = $height.'cm';
+            }
+        } else {
+            // external image and unable to download, fallback
+            if ($width) {
+                $width = $width."cm";
+            } else {
+                $width = '" svg:rel-width="100%';
+            }
+            if ($height) {
+                $height = $height."cm";
+            } else {
+                $height = '" svg:rel-height="100%';
+            }
+        }
+        return array($width, $height);
     }
 
 }
