@@ -1,6 +1,13 @@
-HEAD  Aurélien Bompard <aurelien@bompard.org>
+2010-10-30  Aurélien Bompard <aurelien@bompard.org>
 
 	* action.php: Add getInfo() method, fixes bug #8
+	* renderer.php: Convert tabs in preformatted text (closes: #9)
+	* renderer.php: Add table rowspan support (closes: #4)
+	* lang/uk/: Add Ukrainian translation (by Oleksiy Zagorskyi)
+	* renderer.php: Remove empty paragraphs from output
+	* renderer.php: Fix zh translation PHP syntax
+	* renderer.php: Add manifest entries when using template
+	* renderer.php: Download external images
 
 2010-08-12  Aurélien Bompard <aurelien@bompard.org>
 
