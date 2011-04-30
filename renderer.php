@@ -285,6 +285,10 @@ class renderer_plugin_odt extends Doku_Renderer {
 
         $this->doc = preg_replace('#<text:p[^>]*>\s*</text:p>#', '', $this->doc);
 
+        // Template name provided in the URL
+        if (isset($_GET["odt-template"])) {
+            $this->template = $_GET["odt-template"];
+        }
         if ($this->template) { // template chosen
             if (file_exists($conf['mediadir'].'/'.$this->getConf("tpl_dir")."/".$this->template)) { //template found
                 $this->document_end_template();
