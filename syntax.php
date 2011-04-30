@@ -93,4 +93,4 @@ class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
 
 }
 
-//Setup VIM: ex: et ts=4 enc=utf-8 :
+// vim: set et ts=4 sw=4 fileencoding=utf-8 :
