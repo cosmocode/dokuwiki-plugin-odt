@@ -8,3 +8,4 @@
 
 // for the configuration manager
 $lang['tpl_dir'] = 'Sub-directory for the templates in the media manager';
+$lang['tpl_default'] = 'Default template';
