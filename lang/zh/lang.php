@@ -1,4 +1,10 @@
 <?php
+/**
+ * Chinese language file
+ *
+ * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
+ * @author     lainme <lainme993@gmail.com>
+ */
 
 // settings must be present and set appropriately for the language
 $lang['encoding']   = 'utf-8';

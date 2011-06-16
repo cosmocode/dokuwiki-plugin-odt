@@ -1,6 +1,6 @@
 <?php
 /**
- * English language file
+ * French language file
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Aurelien Bompard <aurelien@bompard.org>

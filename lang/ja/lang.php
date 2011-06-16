@@ -1,4 +1,10 @@
 ﻿<?php
+/**
+ * Japanese language file
+ *
+ * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
+ * @author     Ikuo Obataya <ikuo_obataya@symplus.co.jp>
+ */
 
 // settings must be present and set appropriately for the language
 $lang['encoding']   = 'utf-8';
