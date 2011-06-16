@@ -10,7 +10,7 @@
 // settings must be present and set appropriately for the language
 $lang['encoding']   = 'utf-8';
 $lang['direction']  = 'ltr';
-       
+
 // export button
 $lang['view'] = 'Exportar p&aacute;gina en formato Open Document';
 

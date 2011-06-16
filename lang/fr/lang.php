@@ -3,7 +3,7 @@
 // settings must be present and set appropriately for the language
 $lang['encoding']   = 'utf-8';
 $lang['direction']  = 'ltr';
-       
+
 // export button
 $lang['view'] = 'Exporter la page au format Open Document';
 
