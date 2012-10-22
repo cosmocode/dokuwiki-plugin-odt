@@ -406,6 +406,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         $missingfonts = $this->_odtFonts();
         $userfields = $this->_odtUserFields();
 
+dbglog($this->doc);
+
         // Insert content
         $old_content = io_readFile($this->temp_dir.'/content.xml');
         if (strpos($old_content, 'DOKUWIKI-ODT-INSERT') !== FALSE) { // Replace the mark
@@ -414,6 +416,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         } else { // Append to the template
             $this->_odtReplaceInFile('</office:text>', $this->doc.'</office:text>', $this->temp_dir.'/content.xml');
         }
+
+dbglog(io_readFile($this->temp_dir.'/content.xml'));
 
         // Cut off unwanted content
         if (strpos($old_content, 'DOKUWIKI-ODT-CUT-START') !== FALSE 
@@ -443,10 +447,20 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->io_rm_rf($this->temp_dir);
     }
 
+    /**
+     * Escape a text use din preg_replace to be safe against back references
+     *
+     * @param $str
+     * @return mixed
+     */
+    function preg_replacement_quote($str) {
+        return preg_replace('/(\$|\\\\)(?=\d)/', '\\\\\1', $str);
+    }
+
     function _odtReplaceInFile($from, $to, $file, $regexp=FALSE) {
         $value = io_readFile($file);
         if ($regexp) {
-            $value = preg_replace($from, $to, $value);
+            $value = preg_replace($from, $this->preg_replacement_quote($to), $value);
         } else {
             $value = str_replace($from, $to, $value);
         }
