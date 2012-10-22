@@ -1,5 +1,5 @@
 # General Plugin Info do not edit
-
+base   odt
 author Andreas Gohr, Aurelien Bompard
 email  andi@splitbrain.org, aurelien@bompard.org
 date   2012-10-22
