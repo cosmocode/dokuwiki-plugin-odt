@@ -155,13 +155,6 @@ class renderer_plugin_odt extends Doku_Renderer {
     );
 
     /**
-     * Return version info
-     */
-    function getInfo(){
-        return confToHash(dirname(__FILE__).'/info.txt');
-    }
-
-    /**
      * Returns the format produced by this renderer.
      */
     function getFormat(){
