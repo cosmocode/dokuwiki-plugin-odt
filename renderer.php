@@ -406,8 +406,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         $missingfonts = $this->_odtFonts();
         $userfields = $this->_odtUserFields();
 
-dbglog($this->doc);
-
         // Insert content
         $old_content = io_readFile($this->temp_dir.'/content.xml');
         if (strpos($old_content, 'DOKUWIKI-ODT-INSERT') !== FALSE) { // Replace the mark
@@ -416,8 +414,6 @@ dbglog($this->doc);
         } else { // Append to the template
             $this->_odtReplaceInFile('</office:text>', $this->doc.'</office:text>', $this->temp_dir.'/content.xml');
         }
-
-dbglog(io_readFile($this->temp_dir.'/content.xml'));
 
         // Cut off unwanted content
         if (strpos($old_content, 'DOKUWIKI-ODT-CUT-START') !== FALSE 
