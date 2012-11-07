@@ -417,7 +417,8 @@ class renderer_plugin_odt extends Doku_Renderer {
 
         // Insert userfields
         if (strpos($old_content, "text:user-field-decls") === FALSE) { // no existing userfields
-            $this->_odtReplaceInFile('/<office:text([^>]*)>/U', '<office:text\1>'.$userfields, $this->temp_dir.'/content.xml', TRUE);
+            $escapedUserFields = $this->preg_replacement_quote($userfields);
+            $this->_odtReplaceInFile('/<office:text([^>]*)>/U', '<office:text\1>'.$escapedUserFields, $this->temp_dir.'/content.xml', TRUE, false);
         } else {
             $this->_odtReplaceInFile('</text:user-field-decls>', substr($userfields,23), $this->temp_dir.'/content.xml');
         }
@@ -446,10 +447,13 @@ class renderer_plugin_odt extends Doku_Renderer {
         return preg_replace('/(\$|\\\\)(?=\d)/', '\\\\\1', $str);
     }
 
-    function _odtReplaceInFile($from, $to, $file, $regexp=FALSE) {
+    function _odtReplaceInFile($from, $to, $file, $regexp = FALSE, $escapeTo = true) {
         $value = io_readFile($file);
         if ($regexp) {
-            $value = preg_replace($from, $this->preg_replacement_quote($to), $value);
+            if ($escapeTo) {
+                $to = $this->preg_replacement_quote($to);
+            }
+            $value = preg_replace($from, $to, $value);
         } else {
             $value = str_replace($from, $to, $value);
         }
