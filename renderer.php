@@ -363,6 +363,8 @@ class renderer_plugin_odt extends Doku_Renderer {
         $value .=       '</office:body>';
         $value .=   '</office:document-content>';
 
+        trigger_event('PLUGINODT_CONTENT_ADDZIP', $value);
+
         $this->ZIP->add_File($value,'content.xml');
 
         $value = io_readFile(DOKU_PLUGIN.'odt/styles.xml');
