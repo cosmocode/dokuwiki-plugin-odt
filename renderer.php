@@ -184,6 +184,9 @@ class renderer_plugin_odt extends Doku_Renderer {
         // prepare the zipper
         $this->ZIP = new ZipLib();
 
+        // mime type should always be the very first entry
+        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
+
         // prepare meta data
         $this->meta             = array(
                 'meta:generator'            => 'DokuWiki '.getversion(),
@@ -312,7 +315,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         $userfields = $this->_odtUserFields();
 
         // add defaults
-        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
 
         $this->_odtMeta();
         $this->_odtSettings();
