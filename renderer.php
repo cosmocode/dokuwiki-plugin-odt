@@ -9,37 +9,27 @@
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
 
-require_once DOKU_INC . 'inc/parser/renderer.php';
-
-// ZipLib.class.php
-$dw_version = preg_replace('/[^\d]/', '', getversion());
-if(version_compare($dw_version, "20070626") and
-    version_compare(PHP_VERSION, '5.0.0', '>')
-) {
-    // If strictly newer than 2007-06-26 and use PHP5, fixes to ZipLib are
-    // included in Dokuwiki's ZipLib
-    require_once DOKU_INC . 'inc/ZipLib.class.php';
-} else { // for DW up to 2007-06-26, we need the patched version
-    require_once 'ZipLib.class.php';
-}
-
 /**
  * The Renderer
  */
 class renderer_plugin_odt extends Doku_Renderer {
-    var $ZIP = null;
-    var $meta;
-    var $store = '';
-    var $footnotes = array();
-    var $manifest = array();
-    var $headers = array();
-    var $template = "";
-    var $fields = array();
-    var $in_list_item = false;
-    var $in_paragraph = false;
-    var $highlight_style_num = 1;
+
+    /** @var ZipLib */
+    protected $ZIP = null;
+
+    protected $temp_dir;
+    protected $meta;
+    protected $store = '';
+    protected $footnotes = array();
+    protected $manifest = array();
+    protected $headers = array();
+    protected $template = "";
+    protected $fields = array();
+    protected $in_list_item = false;
+    protected $in_paragraph = false;
+    protected $highlight_style_num = 1;
     // Automatic styles. Will always be added to content.xml and styles.xml
-    var $autostyles = array(
+    protected $autostyles = array(
         "pm1"              => '
             <style:page-layout style:name="pm1">
                 <style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" style:num-format="1" style:print-orientation="portrait" fo:margin-top="2cm" fo:margin-bottom="2cm" fo:margin-left="2cm" fo:margin-right="2cm" style:writing-mode="lr-tb" style:footnote-max-height="0cm">
@@ -112,7 +102,7 @@ class renderer_plugin_odt extends Doku_Renderer {
             </style:style>',
     );
     // Regular styles. May not be present if in template mode, in which case they will be added to styles.xml
-    var $styles = array(
+    protected $styles = array(
         "Source_20_Text"       => '
             <style:style style:name="Source_20_Text" style:display-name="Source Text" style:family="text">
                 <style:text-properties style:font-name="Bitstream Vera Sans Mono" style:font-name-asian="Bitstream Vera Sans Mono" style:font-name-complex="Bitstream Vera Sans Mono"/>
@@ -150,7 +140,7 @@ class renderer_plugin_odt extends Doku_Renderer {
             </style:style>',
     );
     // Font definitions. May not be present if in template mode, in which case they will be added to styles.xml
-    var $fonts = array(
+    protected $fonts = array(
         "StarSymbol"               => '<style:font-face style:name="StarSymbol" svg:font-family="StarSymbol"/>', // for bullets
         "Bitstream Vera Sans Mono" => '<style:font-face style:name="Bitstream Vera Sans Mono" svg:font-family="\'Bitstream Vera Sans Mono\'" style:font-family-generic="modern" style:font-pitch="fixed"/>', // for source code
     );
@@ -938,7 +928,6 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     function _highlight($type, $text, $language = null) {
-        global $conf;
         $style_name = "Source_20_Code";
         if($type == "file") $style_name = "Source_20_File";
 
@@ -1001,10 +990,9 @@ class renderer_plugin_odt extends Doku_Renderer {
 
     function internalmedia($src, $title = null, $align = null, $width = null,
                            $height = null, $cache = null, $linking = null) {
-        global $conf;
         global $ID;
         resolve_mediaid(getNS($ID), $src, $exists);
-        list($ext, $mime) = mimetype($src);
+        list(, $mime) = mimetype($src);
 
         if(substr($mime, 0, 5) == 'image') {
             $file = mediaFN($src);
@@ -1018,7 +1006,6 @@ class renderer_plugin_odt extends Doku_Renderer {
     function externalmedia($src, $title = null, $align = null, $width = null,
                            $height = null, $cache = null, $linking = null) {
         global $conf;
-        global $ID;
         list($ext, $mime) = mimetype($src);
 
         if(substr($mime, 0, 5) == 'image') {
@@ -1063,7 +1050,6 @@ class renderer_plugin_odt extends Doku_Renderer {
      * @author Andreas Gohr <andi@splitbrain.org>
      */
     function internallink($id, $name = null) {
-        global $conf;
         global $ID;
         // default name is based on $id as given
         $default = $this->_simpleTitle($id);
@@ -1087,10 +1073,7 @@ class renderer_plugin_odt extends Doku_Renderer {
      * Add external link
      */
     function externallink($url, $name = null) {
-        global $conf;
-
         $name = $this->_getLinkTitle($name, $url, $isImage);
-
         $this->_doLink($url, $name);
     }
 
@@ -1182,20 +1165,21 @@ class renderer_plugin_odt extends Doku_Renderer {
                 }
             }
             return $this->_xmlEntities($default);
-        } else if(is_string($title)) {
-            return $this->_xmlEntities($title);
         } else if(is_array($title)) {
             $isImage = true;
             return $title;
         }
+
+        return $this->_xmlEntities($title);
     }
 
     /**
      * Creates a linkid from a headline
      *
+     * @author Andreas Gohr <andi@splitbrain.org>
      * @param string  $title   The headline title
      * @param boolean $create  Create a new unique ID?
-     * @author Andreas Gohr <andi@splitbrain.org>
+     * @return string
      */
     function _headerToLink($title, $create = false) {
         $title = str_replace(':', '', cleanID($title));
