@@ -7,5 +7,5 @@
  */
 
 // for the configuration manager
-$lang['tpl_dir'] = 'Sous-répertoire des modèles dans le sélecteur de fichiers';
+$lang['tpl_dir']     = 'Sous-répertoire des modèles dans le sélecteur de fichiers';
 $lang['tpl_default'] = 'Modèle par défaut';

@@ -7,5 +7,5 @@
  */
 
 // for the configuration manager
-$lang['tpl_dir'] = '用于多媒体管理器模板的子目录';
+$lang['tpl_dir']     = '用于多媒体管理器模板的子目录';
 $lang['tpl_default'] = '默认模板';

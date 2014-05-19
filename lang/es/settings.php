@@ -7,5 +7,5 @@
  */
 
 // for the configuration manager
-$lang['tpl_dir'] = 'Sub-directorio para plantillas en el administrador de medios';
+$lang['tpl_dir']     = 'Sub-directorio para plantillas en el administrador de medios';
 $lang['tpl_default'] = 'Tema pre-definido';

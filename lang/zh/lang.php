@@ -7,8 +7,8 @@
  */
 
 // settings must be present and set appropriately for the language
-$lang['encoding']   = 'utf-8';
-$lang['direction']  = 'ltr';
+$lang['encoding']  = 'utf-8';
+$lang['direction'] = 'ltr';
 
 // export button
 $lang['view'] = '将页面导出为开放文档格式';

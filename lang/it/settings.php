@@ -7,5 +7,5 @@
  */
 
 // for the configuration manager
-$lang['tpl_dir'] = 'Sotto directory dei modelli nel gestore multimediale';
+$lang['tpl_dir']     = 'Sotto directory dei modelli nel gestore multimediale';
 $lang['tpl_default'] = 'Modello predefinito';

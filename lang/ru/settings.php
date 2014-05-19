@@ -7,5 +7,5 @@
  */
 
 // for the configuration manager
-$lang['tpl_dir'] = 'Подкаталог шаблонов в media manager';
+$lang['tpl_dir']     = 'Подкаталог шаблонов в media manager';
 $lang['tpl_default'] = 'Шаблон по-умолчанию';
