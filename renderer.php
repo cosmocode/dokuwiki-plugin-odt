@@ -165,12 +165,6 @@ class renderer_plugin_odt extends Doku_Renderer {
     function document_start() {
         global $ID;
 
-        // If older or equal to 2007-06-26, we need to disable caching
-        $dw_version = preg_replace('/[^\d]/', '', getversion());
-        if(version_compare($dw_version, "20070626", "<=")) {
-            $this->info["cache"] = false;
-        }
-
         // prepare the zipper
         $this->ZIP = new ZipLib();
 
@@ -189,20 +183,13 @@ class renderer_plugin_odt extends Doku_Renderer {
             'meta:editing-duration' => 'PT0S',
         );
 
-        //$headers = array('Content-Type'=>'text/plain'); p_set_metadata($ID,array('format' => array('odt' => $headers) )); return ; // DEBUG
-        // send the content type header, new method after 2007-06-26 (handles caching)
+        // store the content type headers in metadata
         $output_filename = str_replace(':', '-', $ID) . ".odt";
-        if(version_compare($dw_version, "20070626")) {
-            // store the content type headers in metadata
-            $headers = array(
-                'Content-Type'        => 'application/vnd.oasis.opendocument.text',
-                'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
-            );
-            p_set_metadata($ID, array('format' => array('odt' => $headers)));
-        } else { // older method
-            header('Content-Type: application/vnd.oasis.opendocument.text');
-            header('Content-Disposition: attachment; filename="' . $output_filename . '";');
-        }
+        $headers = array(
+            'Content-Type'        => 'application/vnd.oasis.opendocument.text',
+            'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
+        );
+        p_set_metadata($ID, array('format' => array('odt' => $headers)));
     }
 
     /**
@@ -370,14 +357,11 @@ class renderer_plugin_odt extends Doku_Renderer {
         global $conf, $ID; // for the temp dir
 
         // Temp dir
-        if(is_dir($conf['tmpdir'])) {
-            $temp_dir = $conf['tmpdir']; // version > 20070626
-        } else {
-            $temp_dir = $conf['savedir'] . '/cache/tmp'; // version <= 20070626
-        }
+        $temp_dir = $conf['tmpdir'];
+
         $this->temp_dir = $temp_dir . "/odt/" . str_replace(':', '-', $ID);
         if(is_dir($this->temp_dir)) {
-            $this->io_rm_rf($this->temp_dir);
+            io_rmdir($this->temp_dir, true);
         }
         io_mkdir_p($this->temp_dir);
 
@@ -431,7 +415,7 @@ class renderer_plugin_odt extends Doku_Renderer {
 
         // Build the Zip
         $this->ZIP->Compress(null, $this->temp_dir, null);
-        $this->io_rm_rf($this->temp_dir);
+        io_rmdir($this->temp_dir, true);
     }
 
     /**
@@ -457,25 +441,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         $file_f = fopen($file, 'w');
         fwrite($file_f, $value);
         fclose($file_f);
-    }
-
-    /**
-     * Recursively deletes a directory (equivalent to the "rm -rf" command)
-     * Found in comments on http://www.php.net/rmdir
-     */
-    function io_rm_rf($f) {
-        if(is_dir($f)) {
-            foreach(glob($f . '/*') as $sf) {
-                if(is_dir($sf) && !is_link($sf)) {
-                    $this->io_rm_rf($sf);
-                } else {
-                    unlink($sf);
-                }
-            }
-        } else { // avoid nasty consequenses if something wrong is given
-            die("Error: not a directory - $f");
-        }
-        rmdir($f);
     }
 
     // not supported - use OpenOffice builtin tools instead!
