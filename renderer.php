@@ -14,16 +14,21 @@ if(!defined('DOKU_INC')) die();
  */
 class renderer_plugin_odt extends Doku_Renderer {
 
-    /** @var ZipLib */
+    /** @var ZipLib OpenDocument is just a ZIP file */
     protected $ZIP = null;
+
+    /** @var string the template to use (media ID relative to the configured template namespace) */
+    protected $template = '';
 
     protected $temp_dir;
     protected $meta;
+
+    /** @var string keeps $doc during footnote processing */
     protected $store = '';
     protected $footnotes = array();
     protected $manifest = array();
     protected $headers = array();
-    public $template = "";
+
     protected $fields = array();
     protected $in_list_item = false;
     protected $in_paragraph = false;
@@ -185,7 +190,7 @@ class renderer_plugin_odt extends Doku_Renderer {
 
         // store the content type headers in metadata
         $output_filename = str_replace(':', '-', $ID) . ".odt";
-        $headers = array(
+        $headers         = array(
             'Content-Type'        => 'application/vnd.oasis.opendocument.text',
             'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
         );
@@ -246,6 +251,46 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->ZIP->add_File($value, 'settings.xml');
     }
 
+    public function setTemplate($tpl) {
+        $this->template = $tpl;
+    }
+
+    /**
+     * Return the file name of the template to use
+     *
+     * Handles URL parameters and previosly set templates
+     *
+     * @return string
+     */
+    protected function getTemplateFile() {
+        global $INPUT;
+
+        // check if a template was given in the URL or a default was configured
+        $this->template = $INPUT->str('odt-template', $this->template); // backwards compatibility
+        $this->template = $INPUT->str('tpl', $this->template); // preferred name
+        if(!$this->template) $this->template = $this->getConf('tpl_default');
+
+        $tplfile = '';
+        if($this->template) {
+            // locate the template
+            $tplns   = $this->getConf('tpl_ns');
+            $tplfile = mediaFN($tplns . ':' . $this->template);
+
+            // got it?
+            if(!file_exists($tplfile)) {
+                $this->doc = '<text:p text:style-name="Text_20_body"><text:span text:style-name="Strong_20_Emphasis">'
+                    . $this->_xmlEntities(sprintf($this->getLang('tpl_not_found'), $this->template, $tplns))
+                    . '</text:span></text:p>' . $this->doc;
+            }
+        }
+
+        if(!$tplfile) {
+            $tplfile = __DIR__ . 'default.odt'; // fall back to default
+        }
+
+        return $tplfile;
+    }
+
     /**
      * Closes the document
      */
@@ -255,22 +300,14 @@ class renderer_plugin_odt extends Doku_Renderer {
 
         $this->doc = preg_replace('#<text:p[^>]*>\s*</text:p>#', '', $this->doc);
 
-        // Template name provided in the URL
-        if(isset($_GET["odt-template"])) {
-            $this->template = $_GET["odt-template"];
-        }
+        $tpl = $this->getTemplateFile();
 
-        // Template provided in the configuration
-        if(!$this->template and $this->getConf("tpl_default")) {
-            $this->template = $this->getConf("tpl_default");
-        }
-
-        if($this->template) { // template chosen
-            if(file_exists($conf['mediadir'] . '/' . $this->getConf("tpl_dir") . "/" . $this->template)) { //template found
+        if($tpl) { // template chosen
+            if(file_exists($conf['mediadir'] . '/' . $this->getConf("tpl_dir") . "/" . $tpl)) { //template found
                 $this->document_end_template();
             } else { // template chosen but not found : warn the user and use the default template
                 $this->doc = '<text:p text:style-name="Text_20_body"><text:span text:style-name="Strong_20_Emphasis">'
-                    . $this->_xmlEntities(sprintf($this->getLang('tpl_not_found'), $this->template, $this->getConf("tpl_dir")))
+                    . $this->_xmlEntities(sprintf($this->getLang('tpl_not_found'), $tpl, $this->getConf("tpl_dir")))
                     . '</text:span></text:p>' . $this->doc;
                 $this->document_end_scratch();
             }

@@ -70,7 +70,7 @@ class syntax_plugin_odt_export extends DokuWiki_Syntax_Plugin {
                 return true;
             case $type:
                 // set template directly in the renderer
-                if($template) $renderer->template = $template;
+                if($template) $renderer->setTemplate($template);
                 return true;
             case 'metadata':
                 // store template in metadata (for cache adjustment)

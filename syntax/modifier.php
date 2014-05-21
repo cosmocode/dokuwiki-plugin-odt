@@ -72,7 +72,7 @@ class syntax_plugin_odt_modifier extends DokuWiki_Syntax_Plugin {
             if($template) $renderer->meta['relation']['odt'] = array('template' => $template);
             return true;
         } elseif($format = 'odt') {
-            if($template) $renderer->template = $template;
+            if($template) $renderer->setTemplate($template);
             return true;
         }
         return false;
