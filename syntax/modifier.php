@@ -5,14 +5,14 @@
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Andreas Gohr <andi@splitbrain.org>
  * @author     Aurelien Bompard <aurelien@bompard.org>
+ *
+ * @deprecated this is for backwards compatibility only and will be removed soonish
  */
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
 
-if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN', DOKU_INC . 'lib/plugins/');
-require_once(DOKU_PLUGIN . 'syntax.php');
 
-class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
+class syntax_plugin_odt_modifier extends DokuWiki_Syntax_Plugin {
 
     /**
      * What kind of syntax are we?
@@ -39,7 +39,6 @@ class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
      * Connect pattern to lexer
      */
     function connectTo($mode) {
-        $this->Lexer->addSpecialPattern('~~ODT~~', $mode, 'plugin_odt');
         $this->Lexer->addSpecialPattern('{{odt>.+?}}', $mode, 'plugin_odt');
     }
 
@@ -47,10 +46,6 @@ class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
      * Handle the match
      */
     function handle($match, $state, $pos, &$handler) {
-        // Export button
-        if($match == '~~ODT~~') {
-            return array();
-        }
         // Extended info
         $match     = substr($match, 6, -2); //strip markup
         $extinfo   = explode(':', $match);
@@ -69,19 +64,16 @@ class syntax_plugin_odt extends DokuWiki_Syntax_Plugin {
      * Create output
      */
     function render($format, &$renderer, $data) {
-        global $ID, $REV;
-        if(!$data) { // Export button
-            if($format != 'xhtml') return false;
-            $renderer->doc .= '<a href="' . exportlink($ID, 'odt', ($REV != '' ? 'rev=' . $REV : '')) . '" title="' . $this->getLang('view') . '">';
-            $renderer->doc .= '<img src="' . DOKU_BASE . 'lib/plugins/odt/odt.png" align="right" alt="' . $this->getLang('view') . '" width="48" height="48" />';
-            $renderer->doc .= '</a>';
+        global $ID;
+        list($info_type, $template) = $data;
+        if($info_type != 'template') return false;
+
+        if($format == 'metadata') {
+            if($template) $renderer->meta['relation']['odt'] = array('template' => $template);
             return true;
-        } else { // Extended info
-            list($info_type, $info_value) = $data;
-            if($info_type == "template") { // Template-based export
-                $renderer->template = $info_value;
-                p_set_metadata($ID, array("relation" => array("odt" => array("template" => $info_value))));
-            }
+        } elseif($format = 'odt') {
+            if($template) $renderer->template = $template;
+            return true;
         }
         return false;
     }

@@ -23,7 +23,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     protected $footnotes = array();
     protected $manifest = array();
     protected $headers = array();
-    protected $template = "";
+    public $template = "";
     protected $fields = array();
     protected $in_list_item = false;
     protected $in_paragraph = false;
