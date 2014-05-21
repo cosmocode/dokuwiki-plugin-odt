@@ -151,53 +151,6 @@ class renderer_plugin_odt extends Doku_Renderer {
     );
 
     /**
-     * Returns the format produced by this renderer.
-     */
-    function getFormat() {
-        return "odt";
-    }
-
-    /**
-     * Do not make multiple instances of this class
-     */
-    function isSingleton() {
-        return true;
-    }
-
-    /**
-     * Initialize the rendering
-     */
-    function document_start() {
-        global $ID;
-
-        // prepare the zipper
-        $this->ZIP = new ZipLib();
-
-        // mime type should always be the very first entry
-        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
-
-        // prepare meta data
-        $this->meta = array(
-            'meta:generator'        => 'DokuWiki ' . getversion(),
-            'meta:initial-creator'  => 'Generated',
-            'meta:creation-date'    => date('Y-m-d\\TH::i:s', null), //FIXME
-            'dc:creator'            => 'Generated',
-            'dc:date'               => date('Y-m-d\\TH::i:s', null),
-            'dc:language'           => 'en-US',
-            'meta:editing-cycles'   => '1',
-            'meta:editing-duration' => 'PT0S',
-        );
-
-        // store the content type headers in metadata
-        $output_filename = str_replace(':', '-', $ID) . ".odt";
-        $headers         = array(
-            'Content-Type'        => 'application/vnd.oasis.opendocument.text',
-            'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
-        );
-        p_set_metadata($ID, array('format' => array('odt' => $headers)));
-    }
-
-    /**
      * Prepare meta.xml
      */
     function _odtMeta() {
@@ -289,32 +242,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         }
 
         return $tplfile;
-    }
-
-    /**
-     * Closes the document
-     */
-    function document_end() {
-        global $conf;
-        //$this->doc .= $this->_odtAutoStyles(); return; // DEBUG
-
-        $this->doc = preg_replace('#<text:p[^>]*>\s*</text:p>#', '', $this->doc);
-
-        $tpl = $this->getTemplateFile();
-
-        if($tpl) { // template chosen
-            if(file_exists($conf['mediadir'] . '/' . $this->getConf("tpl_dir") . "/" . $tpl)) { //template found
-                $this->document_end_template();
-            } else { // template chosen but not found : warn the user and use the default template
-                $this->doc = '<text:p text:style-name="Text_20_body"><text:span text:style-name="Strong_20_Emphasis">'
-                    . $this->_xmlEntities(sprintf($this->getLang('tpl_not_found'), $tpl, $this->getConf("tpl_dir")))
-                    . '</text:span></text:p>' . $this->doc;
-                $this->document_end_scratch();
-            }
-        } else {
-            $this->document_end_scratch();
-        }
-        $this->doc = $this->ZIP->get_file();
     }
 
     /**
@@ -480,14 +407,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         fclose($file_f);
     }
 
-    // not supported - use OpenOffice builtin tools instead!
-    function render_TOC() {
-        return '';
-    }
-
-    function toc_additem($id, $text, $level) {
-    }
-
     function _odtAutoStyles() {
         $value = '<office:automatic-styles>';
         foreach($this->autostyles as $stylename => $stylexml) {
@@ -548,6 +467,354 @@ class renderer_plugin_odt extends Doku_Renderer {
             }
         }
         return $value;
+    }
+
+    /**
+     * static call back to replace spaces
+     */
+    function _preserveSpace($matches) {
+        $spaces = $matches[1];
+        $len    = strlen($spaces);
+        return '<text:s text:c="' . $len . '"/>';
+    }
+
+    function _preformatted($text, $style = "Preformatted_20_Text", $notescaped = true) {
+        if($notescaped) {
+            $text = $this->_xmlEntities($text);
+        }
+        if(strpos($text, "\n") !== false and strpos($text, "\n") == 0) {
+            // text starts with a newline, remove it
+            $text = substr($text, 1);
+        }
+        $text = str_replace("\n", '<text:line-break/>', $text);
+        $text = str_replace("\t", '<text:tab/>', $text);
+        $text = preg_replace_callback('/(  +)/', array('renderer_plugin_odt', '_preserveSpace'), $text);
+
+        if($this->in_list_item) { // if we're in a list item, we must close the <text:p> tag
+            $this->doc .= '</text:p>';
+            $this->doc .= '<text:p text:style-name="' . $style . '">';
+            $this->doc .= $text;
+            $this->doc .= '</text:p>';
+            $this->doc .= '<text:p>';
+        } else {
+            $this->doc .= '<text:p text:style-name="' . $style . '">';
+            $this->doc .= $text;
+            $this->doc .= '</text:p>';
+        }
+    }
+
+    function _highlight($type, $text, $language = null) {
+        $style_name = "Source_20_Code";
+        if($type == "file") $style_name = "Source_20_File";
+
+        if(is_null($language)) {
+            $this->_preformatted($text, $style_name);
+            return;
+        }
+
+        // from inc/parserutils.php:p_xhtml_cached_geshi()
+        require_once(DOKU_INC . 'inc/geshi.php');
+        $geshi = new GeSHi($text, $language, DOKU_INC . 'inc/geshi');
+        $geshi->set_encoding('utf-8');
+        // $geshi->enable_classes(); DO NOT WANT !
+        $geshi->set_header_type(GESHI_HEADER_PRE);
+        $geshi->enable_keyword_links(false);
+
+        // remove GeSHi's wrapper element (we'll replace it with our own later)
+        // we need to use a GeSHi wrapper to avoid <BR> throughout the highlighted text
+        $highlighted_code = trim(preg_replace('!^<pre[^>]*>|</pre>$!', '', $geshi->parse_code()), "\n\r");
+        // remove useless leading and trailing whitespace-newlines
+        $highlighted_code = preg_replace('/^&nbsp;\n/', '', $highlighted_code);
+        $highlighted_code = preg_replace('/\n&nbsp;$/', '', $highlighted_code);
+        // replace styles
+        $highlighted_code = str_replace("</span>", "</text:span>", $highlighted_code);
+        $highlighted_code = preg_replace_callback('/<span style="([^"]+)">/', array('renderer_plugin_odt', '_convert_css_styles'), $highlighted_code);
+        // cleanup leftover span tags
+        $highlighted_code = preg_replace('/<span[^>]*>/', "<text:span>", $highlighted_code);
+        $highlighted_code = str_replace("&nbsp;", "&#xA0;", $highlighted_code);
+        $this->_preformatted($highlighted_code, $style_name, false);
+    }
+
+    function _convert_css_styles($matches) {
+        $all_css_styles = $matches[1];
+        // parse the CSS attribute
+        $css_styles = array();
+        foreach(explode(";", $all_css_styles) as $css_style) {
+            $css_style_array = explode(":", $css_style);
+            if(!trim($css_style_array[0]) or !trim($css_style_array[1])) {
+                continue;
+            }
+            $css_styles[trim($css_style_array[0])] = trim($css_style_array[1]);
+        }
+        // create the ODT xml style
+        $style_name = "highlight." . $this->highlight_style_num;
+        $this->highlight_style_num += 1;
+        $style_content = '
+            <style:style style:name="' . $style_name . '" style:family="text">
+                <style:text-properties ';
+        foreach($css_styles as $style_key => $style_value) {
+            // Hats off to those who thought out the OpenDocument spec: styling syntax is similar to CSS !
+            $style_content .= 'fo:' . $style_key . '="' . $style_value . '" ';
+        }
+        $style_content .= '/>
+            </style:style>';
+        // add the style to the library
+        $this->autostyles[$style_name] = $style_content;
+        // now make use of the new style
+        return '<text:span text:style-name="' . $style_name . '">';
+    }
+
+    /**
+     * Add a hyperlink, handling Images correctly
+     *
+     * @author Andreas Gohr <andi@splitbrain.org>
+     */
+    function _doLink($url, $name) {
+        $url = $this->_xmlEntities($url);
+        if(is_array($name)) {
+            // Images
+            if($url) $this->doc .= '<draw:a xlink:type="simple" xlink:href="' . $url . '">';
+
+            if($name['type'] == 'internalmedia') {
+                $this->internalmedia(
+                    $name['src'],
+                    $name['title'],
+                    $name['align'],
+                    $name['width'],
+                    $name['height'],
+                    $name['cache'],
+                    $name['linking']
+                );
+            }
+
+            if($url) $this->doc .= '</draw:a>';
+        } else {
+            // Text
+            if($url) $this->doc .= '<text:a xlink:type="simple" xlink:href="' . $url . '">';
+            $this->doc .= $name; // we get the name already XML encoded
+            if($url) $this->doc .= '</text:a>';
+        }
+    }
+
+    /**
+     * Construct a title and handle images in titles
+     *
+     * @author Harry Fuecks <hfuecks@gmail.com>
+     */
+    function _getLinkTitle($title, $default, & $isImage, $id = null) {
+        global $conf;
+
+        $isImage = false;
+        if(is_null($title)) {
+            if($conf['useheading'] && $id) {
+                $heading = p_get_first_heading($id);
+                if($heading) {
+                    return $this->_xmlEntities($heading);
+                }
+            }
+            return $this->_xmlEntities($default);
+        } else if(is_array($title)) {
+            $isImage = true;
+            return $title;
+        }
+
+        return $this->_xmlEntities($title);
+    }
+
+    /**
+     * Creates a linkid from a headline
+     *
+     * @author Andreas Gohr <andi@splitbrain.org>
+     * @param string  $title   The headline title
+     * @param boolean $create  Create a new unique ID?
+     * @return string
+     */
+    function _headerToLink($title, $create = false) {
+        $title = str_replace(':', '', cleanID($title));
+        $title = ltrim($title, '0123456789._-');
+        if(empty($title)) $title = 'section';
+
+        if($create) {
+            // make sure tiles are unique
+            $num = '';
+            while(in_array($title . $num, $this->headers)) {
+                ($num) ? $num++ : $num = 1;
+            }
+            $title           = $title . $num;
+            $this->headers[] = $title;
+        }
+
+        return $title;
+    }
+
+    function _xmlEntities($value) {
+        return str_replace(array('&', '"', "'", '<', '>'), array('&#38;', '&#34;', '&#39;', '&#60;', '&#62;'), $value);
+    }
+
+    function _odtAddImage($src, $width = null, $height = null, $align = null, $title = null, $style = null) {
+        if(file_exists($src)) {
+            list($ext, $mime) = mimetype($src);
+            $name = 'Pictures/' . md5($src) . '.' . $ext;
+            if(!$this->manifest[$name]) {
+                $this->manifest[$name] = $mime;
+                $this->ZIP->add_File(io_readfile($src, false), $name, 0);
+            }
+        } else {
+            $name = $src;
+        }
+        // make sure width and height are available
+        if(!$width || !$height) {
+            list($width, $height) = $this->_odtGetImageSize($src, $width, $height);
+        }
+
+        if($align) {
+            $anchor = 'paragraph';
+        } else {
+            $anchor = 'as-char';
+        }
+
+        if(!$style or !array_key_exists($style, $this->autostyles)) {
+            $style = 'media' . $align;
+        }
+
+        if($title) {
+            $this->doc .= '<draw:frame draw:style-name="' . $style . '" draw:name="' . $this->_xmlEntities($title) . ' Legend"
+                            text:anchor-type="' . $anchor . '" draw:z-index="0" svg:width="' . $width . '">';
+            $this->doc .= '<draw:text-box>';
+            $this->doc .= '<text:p text:style-name="legendcenter">';
+        }
+        $this->doc .= '<draw:frame draw:style-name="' . $style . '" draw:name="' . $this->_xmlEntities($title) . '"
+                        text:anchor-type="' . $anchor . '" draw:z-index="0"
+                        svg:width="' . $width . '" svg:height="' . $height . '" >';
+        $this->doc .= '<draw:image xlink:href="' . $this->_xmlEntities($name) . '"
+                        xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>';
+        $this->doc .= '</draw:frame>';
+        if($title) {
+            $this->doc .= $this->_xmlEntities($title) . '</text:p></draw:text-box></draw:frame>';
+        }
+    }
+
+    function _odtGetImageSize($src, $width = null, $height = null) {
+        if(file_exists($src)) {
+            $info = getimagesize($src);
+            if(!$width) {
+                $width  = $info[0];
+                $height = $info[1];
+            } else {
+                $height = round(($width * $info[1]) / $info[0]);
+            }
+        }
+
+        // convert from pixel to centimeters
+        if($width) $width = (($width / 96.0) * 2.54);
+        if($height) $height = (($height / 96.0) * 2.54);
+
+        if($width && $height) {
+            // Don't be wider than the page
+            if($width >= 17) { // FIXME : this assumes A4 page format with 2cm margins
+                $width  = $width . 'cm"  style:rel-width="100%';
+                $height = $height . 'cm"  style:rel-height="scale';
+            } else {
+                $width  = $width . 'cm';
+                $height = $height . 'cm';
+            }
+        } else {
+            // external image and unable to download, fallback
+            if($width) {
+                $width = $width . "cm";
+            } else {
+                $width = '" svg:rel-width="100%';
+            }
+            if($height) {
+                $height = $height . "cm";
+            } else {
+                $height = '" svg:rel-height="100%';
+            }
+        }
+        return array($width, $height);
+    }
+
+    #region implemented render methods (overrides)
+
+    /**
+     * Returns the format produced by this renderer.
+     */
+    function getFormat() {
+        return "odt";
+    }
+
+    /**
+     * Do not make multiple instances of this class
+     */
+    function isSingleton() {
+        return true;
+    }
+
+    /**
+     * Initialize the rendering
+     */
+    function document_start() {
+        global $ID;
+
+        // prepare the zipper
+        $this->ZIP = new ZipLib();
+
+        // mime type should always be the very first entry
+        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
+
+        // prepare meta data
+        $this->meta = array(
+            'meta:generator'        => 'DokuWiki ' . getversion(),
+            'meta:initial-creator'  => 'Generated',
+            'meta:creation-date'    => date('Y-m-d\\TH::i:s', null), //FIXME
+            'dc:creator'            => 'Generated',
+            'dc:date'               => date('Y-m-d\\TH::i:s', null),
+            'dc:language'           => 'en-US',
+            'meta:editing-cycles'   => '1',
+            'meta:editing-duration' => 'PT0S',
+        );
+
+        // store the content type headers in metadata
+        $output_filename = str_replace(':', '-', $ID) . ".odt";
+        $headers         = array(
+            'Content-Type'        => 'application/vnd.oasis.opendocument.text',
+            'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
+        );
+        p_set_metadata($ID, array('format' => array('odt' => $headers)));
+    }
+
+    /**
+     * Closes the document
+     */
+    function document_end() {
+        global $conf;
+        //$this->doc .= $this->_odtAutoStyles(); return; // DEBUG
+
+        $this->doc = preg_replace('#<text:p[^>]*>\s*</text:p>#', '', $this->doc);
+
+        $tpl = $this->getTemplateFile();
+
+        if($tpl) { // template chosen
+            if(file_exists($conf['mediadir'] . '/' . $this->getConf("tpl_dir") . "/" . $tpl)) { //template found
+                $this->document_end_template();
+            } else { // template chosen but not found : warn the user and use the default template
+                $this->doc = '<text:p text:style-name="Text_20_body"><text:span text:style-name="Strong_20_Emphasis">'
+                    . $this->_xmlEntities(sprintf($this->getLang('tpl_not_found'), $tpl, $this->getConf("tpl_dir")))
+                    . '</text:span></text:p>' . $this->doc;
+                $this->document_end_scratch();
+            }
+        } else {
+            $this->document_end_scratch();
+        }
+        $this->doc = $this->ZIP->get_file();
+    }
+
+    // not supported - use OpenOffice builtin tools instead!
+    function render_TOC() {
+        return '';
+    }
+
+    function toc_additem($id, $text, $level) {
     }
 
     function cdata($text) {
@@ -870,15 +1137,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->file($text);
     }
 
-    /**
-     * static call back to replace spaces
-     */
-    function _preserveSpace($matches) {
-        $spaces = $matches[1];
-        $len    = strlen($spaces);
-        return '<text:s text:c="' . $len . '"/>';
-    }
-
     function preformatted($text) {
         $this->_preformatted($text);
     }
@@ -902,92 +1160,6 @@ class renderer_plugin_odt extends Doku_Renderer {
 
     function code($text, $language = null, $filename = null) {
         $this->_highlight('code', $text, $language);
-    }
-
-    function _preformatted($text, $style = "Preformatted_20_Text", $notescaped = true) {
-        if($notescaped) {
-            $text = $this->_xmlEntities($text);
-        }
-        if(strpos($text, "\n") !== false and strpos($text, "\n") == 0) {
-            // text starts with a newline, remove it
-            $text = substr($text, 1);
-        }
-        $text = str_replace("\n", '<text:line-break/>', $text);
-        $text = str_replace("\t", '<text:tab/>', $text);
-        $text = preg_replace_callback('/(  +)/', array('renderer_plugin_odt', '_preserveSpace'), $text);
-
-        if($this->in_list_item) { // if we're in a list item, we must close the <text:p> tag
-            $this->doc .= '</text:p>';
-            $this->doc .= '<text:p text:style-name="' . $style . '">';
-            $this->doc .= $text;
-            $this->doc .= '</text:p>';
-            $this->doc .= '<text:p>';
-        } else {
-            $this->doc .= '<text:p text:style-name="' . $style . '">';
-            $this->doc .= $text;
-            $this->doc .= '</text:p>';
-        }
-    }
-
-    function _highlight($type, $text, $language = null) {
-        $style_name = "Source_20_Code";
-        if($type == "file") $style_name = "Source_20_File";
-
-        if(is_null($language)) {
-            $this->_preformatted($text, $style_name);
-            return;
-        }
-
-        // from inc/parserutils.php:p_xhtml_cached_geshi()
-        require_once(DOKU_INC . 'inc/geshi.php');
-        $geshi = new GeSHi($text, $language, DOKU_INC . 'inc/geshi');
-        $geshi->set_encoding('utf-8');
-        // $geshi->enable_classes(); DO NOT WANT !
-        $geshi->set_header_type(GESHI_HEADER_PRE);
-        $geshi->enable_keyword_links(false);
-
-        // remove GeSHi's wrapper element (we'll replace it with our own later)
-        // we need to use a GeSHi wrapper to avoid <BR> throughout the highlighted text
-        $highlighted_code = trim(preg_replace('!^<pre[^>]*>|</pre>$!', '', $geshi->parse_code()), "\n\r");
-        // remove useless leading and trailing whitespace-newlines
-        $highlighted_code = preg_replace('/^&nbsp;\n/', '', $highlighted_code);
-        $highlighted_code = preg_replace('/\n&nbsp;$/', '', $highlighted_code);
-        // replace styles
-        $highlighted_code = str_replace("</span>", "</text:span>", $highlighted_code);
-        $highlighted_code = preg_replace_callback('/<span style="([^"]+)">/', array('renderer_plugin_odt', '_convert_css_styles'), $highlighted_code);
-        // cleanup leftover span tags
-        $highlighted_code = preg_replace('/<span[^>]*>/', "<text:span>", $highlighted_code);
-        $highlighted_code = str_replace("&nbsp;", "&#xA0;", $highlighted_code);
-        $this->_preformatted($highlighted_code, $style_name, false);
-    }
-
-    function _convert_css_styles($matches) {
-        $all_css_styles = $matches[1];
-        // parse the CSS attribute
-        $css_styles = array();
-        foreach(explode(";", $all_css_styles) as $css_style) {
-            $css_style_array = explode(":", $css_style);
-            if(!trim($css_style_array[0]) or !trim($css_style_array[1])) {
-                continue;
-            }
-            $css_styles[trim($css_style_array[0])] = trim($css_style_array[1]);
-        }
-        // create the ODT xml style
-        $style_name = "highlight." . $this->highlight_style_num;
-        $this->highlight_style_num += 1;
-        $style_content = '
-            <style:style style:name="' . $style_name . '" style:family="text">
-                <style:text-properties ';
-        foreach($css_styles as $style_key => $style_value) {
-            // Hats off to those who thought out the OpenDocument spec: styling syntax is similar to CSS !
-            $style_content .= 'fo:' . $style_key . '="' . $style_value . '" ';
-        }
-        $style_content .= '/>
-            </style:style>';
-        // add the style to the library
-        $this->autostyles[$style_name] = $style_content;
-        // now make use of the new style
-        return '<text:span text:style-name="' . $style_name . '">';
     }
 
     function internalmedia($src, $title = null, $align = null, $width = null,
@@ -1118,93 +1290,6 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->_doLink("mailto:" . $address, $name);
     }
 
-    /**
-     * Add a hyperlink, handling Images correctly
-     *
-     * @author Andreas Gohr <andi@splitbrain.org>
-     */
-    function _doLink($url, $name) {
-        $url = $this->_xmlEntities($url);
-        if(is_array($name)) {
-            // Images
-            if($url) $this->doc .= '<draw:a xlink:type="simple" xlink:href="' . $url . '">';
-
-            if($name['type'] == 'internalmedia') {
-                $this->internalmedia(
-                    $name['src'],
-                    $name['title'],
-                    $name['align'],
-                    $name['width'],
-                    $name['height'],
-                    $name['cache'],
-                    $name['linking']
-                );
-            }
-
-            if($url) $this->doc .= '</draw:a>';
-        } else {
-            // Text
-            if($url) $this->doc .= '<text:a xlink:type="simple" xlink:href="' . $url . '">';
-            $this->doc .= $name; // we get the name already XML encoded
-            if($url) $this->doc .= '</text:a>';
-        }
-    }
-
-    /**
-     * Construct a title and handle images in titles
-     *
-     * @author Harry Fuecks <hfuecks@gmail.com>
-     */
-    function _getLinkTitle($title, $default, & $isImage, $id = null) {
-        global $conf;
-
-        $isImage = false;
-        if(is_null($title)) {
-            if($conf['useheading'] && $id) {
-                $heading = p_get_first_heading($id);
-                if($heading) {
-                    return $this->_xmlEntities($heading);
-                }
-            }
-            return $this->_xmlEntities($default);
-        } else if(is_array($title)) {
-            $isImage = true;
-            return $title;
-        }
-
-        return $this->_xmlEntities($title);
-    }
-
-    /**
-     * Creates a linkid from a headline
-     *
-     * @author Andreas Gohr <andi@splitbrain.org>
-     * @param string  $title   The headline title
-     * @param boolean $create  Create a new unique ID?
-     * @return string
-     */
-    function _headerToLink($title, $create = false) {
-        $title = str_replace(':', '', cleanID($title));
-        $title = ltrim($title, '0123456789._-');
-        if(empty($title)) $title = 'section';
-
-        if($create) {
-            // make sure tiles are unique
-            $num = '';
-            while(in_array($title . $num, $this->headers)) {
-                ($num) ? $num++ : $num = 1;
-            }
-            $title           = $title . $num;
-            $this->headers[] = $title;
-        }
-
-        return $title;
-    }
-
-    function _xmlEntities($value) {
-        return str_replace(array('&', '"', "'", '<', '>'), array('&#38;', '&#34;', '&#39;', '&#60;', '&#62;'), $value);
-    }
-
     function rss($url, $params) {
         global $lang;
         global $conf;
@@ -1275,89 +1360,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->listu_close();
     }
 
-    function _odtAddImage($src, $width = null, $height = null, $align = null, $title = null, $style = null) {
-        if(file_exists($src)) {
-            list($ext, $mime) = mimetype($src);
-            $name = 'Pictures/' . md5($src) . '.' . $ext;
-            if(!$this->manifest[$name]) {
-                $this->manifest[$name] = $mime;
-                $this->ZIP->add_File(io_readfile($src, false), $name, 0);
-            }
-        } else {
-            $name = $src;
-        }
-        // make sure width and height are available
-        if(!$width || !$height) {
-            list($width, $height) = $this->_odtGetImageSize($src, $width, $height);
-        }
-
-        if($align) {
-            $anchor = 'paragraph';
-        } else {
-            $anchor = 'as-char';
-        }
-
-        if(!$style or !array_key_exists($style, $this->autostyles)) {
-            $style = 'media' . $align;
-        }
-
-        if($title) {
-            $this->doc .= '<draw:frame draw:style-name="' . $style . '" draw:name="' . $this->_xmlEntities($title) . ' Legend"
-                            text:anchor-type="' . $anchor . '" draw:z-index="0" svg:width="' . $width . '">';
-            $this->doc .= '<draw:text-box>';
-            $this->doc .= '<text:p text:style-name="legendcenter">';
-        }
-        $this->doc .= '<draw:frame draw:style-name="' . $style . '" draw:name="' . $this->_xmlEntities($title) . '"
-                        text:anchor-type="' . $anchor . '" draw:z-index="0"
-                        svg:width="' . $width . '" svg:height="' . $height . '" >';
-        $this->doc .= '<draw:image xlink:href="' . $this->_xmlEntities($name) . '"
-                        xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>';
-        $this->doc .= '</draw:frame>';
-        if($title) {
-            $this->doc .= $this->_xmlEntities($title) . '</text:p></draw:text-box></draw:frame>';
-        }
-    }
-
-    function _odtGetImageSize($src, $width = null, $height = null) {
-        if(file_exists($src)) {
-            $info = getimagesize($src);
-            if(!$width) {
-                $width  = $info[0];
-                $height = $info[1];
-            } else {
-                $height = round(($width * $info[1]) / $info[0]);
-            }
-        }
-
-        // convert from pixel to centimeters
-        if($width) $width = (($width / 96.0) * 2.54);
-        if($height) $height = (($height / 96.0) * 2.54);
-
-        if($width && $height) {
-            // Don't be wider than the page
-            if($width >= 17) { // FIXME : this assumes A4 page format with 2cm margins
-                $width  = $width . 'cm"  style:rel-width="100%';
-                $height = $height . 'cm"  style:rel-height="scale';
-            } else {
-                $width  = $width . 'cm';
-                $height = $height . 'cm';
-            }
-        } else {
-            // external image and unable to download, fallback
-            if($width) {
-                $width = $width . "cm";
-            } else {
-                $width = '" svg:rel-width="100%';
-            }
-            if($height) {
-                $height = $height . "cm";
-            } else {
-                $height = '" svg:rel-height="100%';
-            }
-        }
-        return array($width, $height);
-    }
-
+    #endregion
 }
 
 // vim: set et ts=4 sw=4 fileencoding=utf-8 :
