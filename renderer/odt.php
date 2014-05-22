@@ -29,16 +29,22 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
     /** @var string keeps $doc during footnote processing */
     protected $store = '';
 
-    /** @var int number of footnotes seen */
-    protected $footnotecount = 0;
-
     protected $manifest = array();
     protected $headers = array();
-
     protected $fields = array();
+
+    /** @var bool flag for open list items */
     protected $in_list_item = false;
+
+    /** @var bool flag for open paragraph */
     protected $in_paragraph = false;
-    protected $highlight_style_num = 1;
+
+    /** @var int CSS converted styles counter */
+    protected $count_cssstyles = 1;
+
+    /** @var int number of footnotes seen */
+    protected $count_footnotes = 0;
+
     // Automatic styles. Will always be added to content.xml and styles.xml
     protected $autostyles = array(
         "pm1"              => '
@@ -166,11 +172,11 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         $this->ZIP = new ZipLib();
 
         // mime type should always be the very first entry
-        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
+        $this->ZIP->add_File($this->getMimeType(), 'mimetype', 0);
 
         // initialize temp dir
         $this->temp_dir = io_mktmpdir();
-        if(!$this->temp_dir) die('temp dire creation failed');
+        if(!$this->temp_dir) die('temp dir creation failed');
 
         // prepare meta data
         $this->meta = array(
@@ -185,9 +191,9 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         );
 
         // store the content type headers in metadata
-        $output_filename = str_replace(':', '-', $ID) . ".odt";
+        $output_filename = str_replace(':', '-', $ID) . '.' . $this->getFormat();
         $headers         = array(
-            'Content-Type'        => 'application/vnd.oasis.opendocument.text',
+            'Content-Type'        => $this->getMimeType(),
             'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
         );
         p_set_metadata($ID, array('format' => array('odt_odt' => $headers)));
@@ -205,6 +211,15 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         // Apply the template, zip up everything and store it in $doc for caching and output
         $tpl       = $this->getTemplateFile();
         $this->doc = $this->applyTemplate($tpl);
+    }
+
+    /**
+     * Returns the mime type entry
+     *
+     * @return string
+     */
+    protected function getMimeType() {
+        return 'application/vnd.oasis.opendocument.text';
     }
 
     /**
@@ -269,42 +284,6 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         return $this->ZIP->get_file();
     }
 
-    /**
-     * Prepare meta.xml
-     */
-    function _odtMeta() {
-        $value = '<' . '?xml version="1.0" encoding="UTF-8"?' . ">\n";
-        $value .= '<office:document-meta ';
-        $value .= 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" ';
-        $value .= 'xmlns:xlink="http://www.w3.org/1999/xlink" ';
-        $value .= 'xmlns:dc="http://purl.org/dc/elements/1.1/" ';
-        $value .= 'xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" ';
-        $value .= 'office:version="1.0">';
-        $value .= '<office:meta>';
-        # FIXME
-        #    foreach($meta as $meta_key => $meta_value)
-        #        $value .=       '<' . $meta_key . '>' . ODUtils::encode($meta_value) . '</' . $meta_key . '>';
-        $value .= '</office:meta>';
-        $value .= '</office:document-meta>';
-        $this->ZIP->add_File($value, 'meta.xml');
-    }
-
-    /**
-     * Prepare manifest.xml
-     */
-    function _odtManifest() {
-        $value = '<' . '?xml version="1.0" encoding="UTF-8"?' . ">\n";
-        $value .= '<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0">';
-        $value .= '<manifest:file-entry manifest:media-type="application/vnd.oasis.opendocument.text" manifest:full-path="/"/>';
-        $value .= '<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="settings.xml"/>';
-        $value .= '<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="meta.xml"/>';
-        $value .= '<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="content.xml"/>';
-        $value .= '<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="styles.xml"/>';
-        $value .= $this->_odtGetManifest();
-        $value .= '</manifest:manifest>';
-        $this->ZIP->add_File($value, 'META-INF/manifest.xml');
-    }
-
     function _odtGetManifest() {
         $value = '';
         foreach($this->manifest as $path => $type) {
@@ -357,7 +336,7 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         }
 
         if(!$tplfile) {
-            $tplfile = __DIR__ . '/../default.odt'; // fall back to default
+            $tplfile = __DIR__ . '/../default.' . $this->getFormat(); // fall back to default
         }
 
         return $tplfile;
@@ -528,8 +507,8 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
             $css_styles[trim($css_style_array[0])] = trim($css_style_array[1]);
         }
         // create the ODT xml style
-        $style_name = "highlight." . $this->highlight_style_num;
-        $this->highlight_style_num += 1;
+        $style_name = "highlight." . $this->count_cssstyles;
+        $this->count_cssstyles += 1;
         $style_content = '
             <style:style style:name="' . $style_name . '" style:family="text">
                 <style:text-properties ';
@@ -936,9 +915,9 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         $this->doc   = $this->store;
         $this->store = '';
 
-        $this->footnotecount++;
-        $this->doc .= '<text:note text:id="ftn' . $this->footnotecount . '" text:note-class="footnote">';
-        $this->doc .= '<text:note-citation>' . $this->footnotecount . '</text:note-citation>';
+        $this->count_footnotes++;
+        $this->doc .= '<text:note text:id="ftn' . $this->count_footnotes . '" text:note-class="footnote">';
+        $this->doc .= '<text:note-citation>' . $this->count_footnotes . '</text:note-citation>';
         $this->doc .= '<text:note-body>';
         $this->doc .= '<text:p text:style-name="Footnote">';
         $this->doc .= $footnote;
