@@ -12,7 +12,7 @@ if(!defined('DOKU_INC')) die();
 /**
  * The Renderer
  */
-class renderer_plugin_odt extends Doku_Renderer {
+class renderer_plugin_odt_odt extends Doku_Renderer {
 
     /** @var ZipLib OpenDocument is just a ZIP file */
     protected $ZIP = null;
@@ -190,7 +190,7 @@ class renderer_plugin_odt extends Doku_Renderer {
             'Content-Type'        => 'application/vnd.oasis.opendocument.text',
             'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
         );
-        p_set_metadata($ID, array('format' => array('odt' => $headers)));
+        p_set_metadata($ID, array('format' => array('odt_odt' => $headers)));
     }
 
     /**
@@ -357,7 +357,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         }
 
         if(!$tplfile) {
-            $tplfile = __DIR__ . '/default.odt'; // fall back to default
+            $tplfile = __DIR__ . '/../default.odt'; // fall back to default
         }
 
         return $tplfile;
