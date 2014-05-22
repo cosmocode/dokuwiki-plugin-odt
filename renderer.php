@@ -25,7 +25,10 @@ class renderer_plugin_odt extends Doku_Renderer {
 
     /** @var string keeps $doc during footnote processing */
     protected $store = '';
-    protected $footnotes = array();
+
+    /** @var int number of footnotes seen */
+    protected $footnotecount = 0;
+
     protected $manifest = array();
     protected $headers = array();
 
@@ -968,7 +971,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     /**
-     * Callback for footnote start syntax
+     * Start a footnote
      *
      * All following content will go to the footnote instead of
      * the document. To achieve this the previous rendered content
@@ -984,12 +987,15 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     /**
-     * Callback for footnote end syntax
+     * End a footnote
      *
-     * All rendered content is moved to the $footnotes array and the old
-     * content is restored from $store again
+     * All rendered content is wrapped into footnote syntax, the old document is restored from
+     * $store and the footnote is appended.
      *
-     * @author Andreas Gohr
+     * Please note: since OpenDocument places footnotes at the end of a page instead of doing
+     * end of document notes, footnotes are not de-duplicated here.
+     *
+     * @author Andreas Gohr <andi@splitbrain.org>
      */
     function footnote_close() {
         // recover footnote into the stack and restore old content
@@ -997,27 +1003,15 @@ class renderer_plugin_odt extends Doku_Renderer {
         $this->doc   = $this->store;
         $this->store = '';
 
-        // check to see if this footnote has been seen before
-        $i = array_search($footnote, $this->footnotes);
-
-        if($i === false) {
-            $i = count($this->footnotes);
-            // its a new footnote, add it to the $footnotes array
-            $this->footnotes[$i] = $footnote;
-
-            $this->doc .= '<text:note text:id="ftn' . $i . '" text:note-class="footnote">';
-            $this->doc .= '<text:note-citation>' . ($i + 1) . '</text:note-citation>';
-            $this->doc .= '<text:note-body>';
-            $this->doc .= '<text:p text:style-name="Footnote">';
-            $this->doc .= $footnote;
-            $this->doc .= '</text:p>';
-            $this->doc .= '</text:note-body>';
-            $this->doc .= '</text:note>';
-
-        } else {
-            // seen this one before - just reference it FIXME: style isn't correct yet
-            $this->doc .= '<text:note-ref text:note-class="footnote" text:ref-name="ftn' . $i . '">' . ($i + 1) . '</text:note-ref>';
-        }
+        $this->footnotecount++;
+        $this->doc .= '<text:note text:id="ftn' . $this->footnotecount . '" text:note-class="footnote">';
+        $this->doc .= '<text:note-citation>' . $this->footnotecount . '</text:note-citation>';
+        $this->doc .= '<text:note-body>';
+        $this->doc .= '<text:p text:style-name="Footnote">';
+        $this->doc .= $footnote;
+        $this->doc .= '</text:p>';
+        $this->doc .= '</text:note-body>';
+        $this->doc .= '</text:note>';
     }
 
     function listu_open() {
