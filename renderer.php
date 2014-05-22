@@ -20,7 +20,10 @@ class renderer_plugin_odt extends Doku_Renderer {
     /** @var string the template to use (media ID relative to the configured template namespace) */
     protected $template = '';
 
+    /** @var string temporary directory to assemble the zip file contents */
     protected $temp_dir;
+
+    /** @var array the document metadata */
     protected $meta;
 
     /** @var string keeps $doc during footnote processing */
@@ -154,6 +157,119 @@ class renderer_plugin_odt extends Doku_Renderer {
     );
 
     /**
+     * Initializes the document
+     */
+    protected function open() {
+        global $ID;
+
+        // prepare the zipper
+        $this->ZIP = new ZipLib();
+
+        // mime type should always be the very first entry
+        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
+
+        // initialize temp dir
+        $this->temp_dir = io_mktmpdir();
+        if(!$this->temp_dir) die('temp dire creation failed');
+
+        // prepare meta data
+        $this->meta = array(
+            'meta:generator'        => 'DokuWiki ' . getversion(),
+            'meta:initial-creator'  => 'Generated',
+            'meta:creation-date'    => date('Y-m-d\\TH::i:s', null), //FIXME
+            'dc:creator'            => 'Generated',
+            'dc:date'               => date('Y-m-d\\TH::i:s', null),
+            'dc:language'           => 'en-US',
+            'meta:editing-cycles'   => '1',
+            'meta:editing-duration' => 'PT0S',
+        );
+
+        // store the content type headers in metadata
+        $output_filename = str_replace(':', '-', $ID) . ".odt";
+        $headers         = array(
+            'Content-Type'        => 'application/vnd.oasis.opendocument.text',
+            'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
+        );
+        p_set_metadata($ID, array('format' => array('odt' => $headers)));
+    }
+
+    /**
+     * Finalizes the document
+     */
+    protected function close() {
+        global $conf;
+
+        // strip empty paragraphs
+        $this->doc = preg_replace('#<text:p[^>]*>\s*</text:p>#', '', $this->doc);
+
+        // Apply the template, zip up everything and store it in $doc for caching and output
+        $tpl       = $this->getTemplateFile();
+        $this->doc = $this->applyTemplate($tpl);
+    }
+
+    /**
+     * Load the given template file and apply the aggregated content to it
+     *
+     * @param string $tpl full path to the template file
+     * @return string the binary ZIP file contents
+     */
+    function applyTemplate($tpl) {
+        global $conf, $ID; // for the temp dir
+
+        // Extract template
+        $this->ZIP->Extract($tpl, $this->temp_dir);
+
+        // Prepare content
+        $autostyles    = $this->_odtAutoStyles();
+        $missingstyles = $this->_odtStyles();
+        $missingfonts  = $this->_odtFonts();
+        $userfields    = $this->_odtUserFields();
+
+        // Insert content
+        $old_content = io_readFile($this->temp_dir . '/content.xml');
+        if(strpos($old_content, 'DOKUWIKI-ODT-INSERT') !== false) { // Replace the mark
+            $this->_odtReplaceInFile(
+                '/<text:p[^>]*>DOKUWIKI-ODT-INSERT<\/text:p>/',
+                $this->doc, $this->temp_dir . '/content.xml', true
+            );
+        } else { // Append to the template
+            $this->_odtReplaceInFile('</office:text>', $this->doc . '</office:text>', $this->temp_dir . '/content.xml');
+        }
+
+        // Cut off unwanted content
+        if(strpos($old_content, 'DOKUWIKI-ODT-CUT-START') !== false
+            && strpos($old_content, 'DOKUWIKI-ODT-CUT-STOP') !== false
+        ) {
+            $this->_odtReplaceInFile(
+                '/DOKUWIKI-ODT-CUT-START.*DOKUWIKI-ODT-CUT-STOP/',
+                '', $this->temp_dir . '/content.xml', true
+            );
+        }
+
+        // Insert userfields
+        if(strpos($old_content, "text:user-field-decls") === false) { // no existing userfields
+            $escapedUserFields = $this->preg_replacement_quote($userfields);
+            $this->_odtReplaceInFile('/<office:text([^>]*)>/U', '<office:text\1>' . $escapedUserFields, $this->temp_dir . '/content.xml', true, false);
+        } else {
+            $this->_odtReplaceInFile('</text:user-field-decls>', substr($userfields, 23), $this->temp_dir . '/content.xml');
+        }
+
+        // Insert styles & fonts
+        $this->_odtReplaceInFile('</office:automatic-styles>', substr($autostyles, 25), $this->temp_dir . '/content.xml');
+        $this->_odtReplaceInFile('</office:automatic-styles>', substr($autostyles, 25), $this->temp_dir . '/styles.xml');
+        $this->_odtReplaceInFile('</office:styles>', $missingstyles . '</office:styles>', $this->temp_dir . '/styles.xml');
+        $this->_odtReplaceInFile('</office:font-face-decls>', $missingfonts . '</office:font-face-decls>', $this->temp_dir . '/styles.xml');
+
+        // Add manifest data
+        $this->_odtReplaceInFile('</manifest:manifest>', $this->_odtGetManifest() . '</manifest:manifest>', $this->temp_dir . '/META-INF/manifest.xml');
+
+        // Build the Zip
+        $this->ZIP->Compress(null, $this->temp_dir, null);
+        io_rmdir($this->temp_dir, true);
+        return $this->ZIP->get_file();
+    }
+
+    /**
      * Prepare meta.xml
      */
     function _odtMeta() {
@@ -248,145 +364,7 @@ class renderer_plugin_odt extends Doku_Renderer {
     }
 
     /**
-     * Closes the document when not using a template
-     */
-    function document_end_scratch() {
-        $autostyles = $this->_odtAutoStyles();
-        $userfields = $this->_odtUserFields();
-
-        // add defaults
-
-        $this->_odtMeta();
-        $this->_odtSettings();
-
-        $value = '<' . '?xml version="1.0" encoding="UTF-8"?' . ">\n";
-        $value .= '<office:document-content ';
-        $value .= 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" ';
-        $value .= 'xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" ';
-        $value .= 'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" ';
-        $value .= 'xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" ';
-        $value .= 'xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" ';
-        $value .= 'xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" ';
-        $value .= 'xmlns:xlink="http://www.w3.org/1999/xlink" ';
-        $value .= 'xmlns:dc="http://purl.org/dc/elements/1.1/" ';
-        $value .= 'xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" ';
-        $value .= 'xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" ';
-        $value .= 'xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" ';
-        $value .= 'xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" ';
-        $value .= 'xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" ';
-        $value .= 'xmlns:math="http://www.w3.org/1998/Math/MathML" ';
-        $value .= 'xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" ';
-        $value .= 'xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" ';
-        $value .= 'xmlns:dom="http://www.w3.org/2001/xml-events" ';
-        $value .= 'xmlns:xforms="http://www.w3.org/2002/xforms" ';
-        $value .= 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" ';
-        $value .= 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ';
-        $value .= 'office:version="1.0">';
-        $value .= '<office:scripts/>';
-        $value .= '<office:font-face-decls>';
-        $value .= '<style:font-face style:name="Tahoma1" svg:font-family="Tahoma"/>';
-        $value .= '<style:font-face style:name="Lucida Sans Unicode" svg:font-family="&apos;Lucida Sans Unicode&apos;" style:font-pitch="variable"/>';
-        $value .= '<style:font-face style:name="Tahoma" svg:font-family="Tahoma" style:font-pitch="variable"/>';
-        $value .= '<style:font-face style:name="Times New Roman" svg:font-family="&apos;Times New Roman&apos;" style:font-family-generic="roman" style:font-pitch="variable"/>';
-        $value .= '</office:font-face-decls>';
-        $value .= $autostyles;
-        $value .= '<office:body>';
-        $value .= '<office:text>';
-        $value .= '<office:forms form:automatic-focus="false" form:apply-design-mode="false"/>';
-        $value .= '<text:sequence-decls>';
-        $value .= '<text:sequence-decl text:display-outline-level="0" text:name="Illustration"/>';
-        $value .= '<text:sequence-decl text:display-outline-level="0" text:name="Table"/>';
-        $value .= '<text:sequence-decl text:display-outline-level="0" text:name="Text"/>';
-        $value .= '<text:sequence-decl text:display-outline-level="0" text:name="Drawing"/>';
-        $value .= '</text:sequence-decls>';
-        $value .= $userfields;
-        $value .= $this->doc;
-        $value .= '</office:text>';
-        $value .= '</office:body>';
-        $value .= '</office:document-content>';
-
-        trigger_event('PLUGINODT_CONTENT_ADDZIP', $value);
-
-        $this->ZIP->add_File($value, 'content.xml');
-
-        $value = io_readFile(DOKU_PLUGIN . 'odt/styles.xml');
-        $value = str_replace('<office:automatic-styles/>', $autostyles, $value);
-        $this->ZIP->add_File($value, 'styles.xml');
-
-        // build final manifest
-        $this->_odtManifest();
-    }
-
-    /**
-     * Closes the document using a template
-     */
-    function document_end_template() {
-        global $conf, $ID; // for the temp dir
-
-        // Temp dir
-        $temp_dir = $conf['tmpdir'];
-
-        $this->temp_dir = $temp_dir . "/odt/" . str_replace(':', '-', $ID);
-        if(is_dir($this->temp_dir)) {
-            io_rmdir($this->temp_dir, true);
-        }
-        io_mkdir_p($this->temp_dir);
-
-        // Extract template
-        $template_path = $conf['mediadir'] . '/' . $this->getConf("tpl_dir") . "/" . $this->template;
-        $this->ZIP->Extract($template_path, $this->temp_dir);
-
-        // Prepare content
-        $autostyles    = $this->_odtAutoStyles();
-        $missingstyles = $this->_odtStyles();
-        $missingfonts  = $this->_odtFonts();
-        $userfields    = $this->_odtUserFields();
-
-        // Insert content
-        $old_content = io_readFile($this->temp_dir . '/content.xml');
-        if(strpos($old_content, 'DOKUWIKI-ODT-INSERT') !== false) { // Replace the mark
-            $this->_odtReplaceInFile(
-                '/<text:p[^>]*>DOKUWIKI-ODT-INSERT<\/text:p>/',
-                $this->doc, $this->temp_dir . '/content.xml', true
-            );
-        } else { // Append to the template
-            $this->_odtReplaceInFile('</office:text>', $this->doc . '</office:text>', $this->temp_dir . '/content.xml');
-        }
-
-        // Cut off unwanted content
-        if(strpos($old_content, 'DOKUWIKI-ODT-CUT-START') !== false
-            && strpos($old_content, 'DOKUWIKI-ODT-CUT-STOP') !== false
-        ) {
-            $this->_odtReplaceInFile(
-                '/DOKUWIKI-ODT-CUT-START.*DOKUWIKI-ODT-CUT-STOP/',
-                '', $this->temp_dir . '/content.xml', true
-            );
-        }
-
-        // Insert userfields
-        if(strpos($old_content, "text:user-field-decls") === false) { // no existing userfields
-            $escapedUserFields = $this->preg_replacement_quote($userfields);
-            $this->_odtReplaceInFile('/<office:text([^>]*)>/U', '<office:text\1>' . $escapedUserFields, $this->temp_dir . '/content.xml', true, false);
-        } else {
-            $this->_odtReplaceInFile('</text:user-field-decls>', substr($userfields, 23), $this->temp_dir . '/content.xml');
-        }
-
-        // Insert styles & fonts
-        $this->_odtReplaceInFile('</office:automatic-styles>', substr($autostyles, 25), $this->temp_dir . '/content.xml');
-        $this->_odtReplaceInFile('</office:automatic-styles>', substr($autostyles, 25), $this->temp_dir . '/styles.xml');
-        $this->_odtReplaceInFile('</office:styles>', $missingstyles . '</office:styles>', $this->temp_dir . '/styles.xml');
-        $this->_odtReplaceInFile('</office:font-face-decls>', $missingfonts . '</office:font-face-decls>', $this->temp_dir . '/styles.xml');
-
-        // Add manifest data
-        $this->_odtReplaceInFile('</manifest:manifest>', $this->_odtGetManifest() . '</manifest:manifest>', $this->temp_dir . '/META-INF/manifest.xml');
-
-        // Build the Zip
-        $this->ZIP->Compress(null, $this->temp_dir, null);
-        io_rmdir($this->temp_dir, true);
-    }
-
-    /**
-     * Escape a text use din preg_replace to be safe against back references
+     * Escape a text used in preg_replace to be safe against back references
      *
      * @param $str
      * @return mixed
@@ -757,59 +735,14 @@ class renderer_plugin_odt extends Doku_Renderer {
      * Initialize the rendering
      */
     function document_start() {
-        global $ID;
-
-        // prepare the zipper
-        $this->ZIP = new ZipLib();
-
-        // mime type should always be the very first entry
-        $this->ZIP->add_File('application/vnd.oasis.opendocument.text', 'mimetype', 0);
-
-        // prepare meta data
-        $this->meta = array(
-            'meta:generator'        => 'DokuWiki ' . getversion(),
-            'meta:initial-creator'  => 'Generated',
-            'meta:creation-date'    => date('Y-m-d\\TH::i:s', null), //FIXME
-            'dc:creator'            => 'Generated',
-            'dc:date'               => date('Y-m-d\\TH::i:s', null),
-            'dc:language'           => 'en-US',
-            'meta:editing-cycles'   => '1',
-            'meta:editing-duration' => 'PT0S',
-        );
-
-        // store the content type headers in metadata
-        $output_filename = str_replace(':', '-', $ID) . ".odt";
-        $headers         = array(
-            'Content-Type'        => 'application/vnd.oasis.opendocument.text',
-            'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
-        );
-        p_set_metadata($ID, array('format' => array('odt' => $headers)));
+        $this->open();
     }
 
     /**
      * Closes the document
      */
     function document_end() {
-        global $conf;
-        //$this->doc .= $this->_odtAutoStyles(); return; // DEBUG
-
-        $this->doc = preg_replace('#<text:p[^>]*>\s*</text:p>#', '', $this->doc);
-
-        $tpl = $this->getTemplateFile();
-
-        if($tpl) { // template chosen
-            if(file_exists($conf['mediadir'] . '/' . $this->getConf("tpl_dir") . "/" . $tpl)) { //template found
-                $this->document_end_template();
-            } else { // template chosen but not found : warn the user and use the default template
-                $this->doc = '<text:p text:style-name="Text_20_body"><text:span text:style-name="Strong_20_Emphasis">'
-                    . $this->_xmlEntities(sprintf($this->getLang('tpl_not_found'), $tpl, $this->getConf("tpl_dir")))
-                    . '</text:span></text:p>' . $this->doc;
-                $this->document_end_scratch();
-            }
-        } else {
-            $this->document_end_scratch();
-        }
-        $this->doc = $this->ZIP->get_file();
+        $this->close();
     }
 
     // not supported - use OpenOffice builtin tools instead!
