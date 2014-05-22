@@ -357,7 +357,7 @@ class renderer_plugin_odt extends Doku_Renderer {
         }
 
         if(!$tplfile) {
-            $tplfile = __DIR__ . 'default.odt'; // fall back to default
+            $tplfile = __DIR__ . '/default.odt'; // fall back to default
         }
 
         return $tplfile;
