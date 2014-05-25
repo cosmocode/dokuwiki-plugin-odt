@@ -1,0 +1,17 @@
+for ODP support:
+
+  * collect all data pagewise with
+    * title
+    * content
+    * notes
+  * then load the template
+  * parse out all <page> entries
+  * in each page should be a placeholder for
+    * title
+    * content
+    * notes
+  * use the matching page number or last if not enough
+    * this allows for separate title page
+    * needs some adjustments for IDs I guess
+  * we need to check for styles
+    * might be possible to place them in the master slides?
