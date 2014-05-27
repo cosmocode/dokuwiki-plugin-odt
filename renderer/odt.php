@@ -458,7 +458,7 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         }
         $text = str_replace("\n", '<text:line-break/>', $text);
         $text = str_replace("\t", '<text:tab/>', $text);
-        $text = preg_replace_callback('/(  +)/', array('renderer_plugin_odt', '_preserveSpace'), $text);
+        $text = preg_replace_callback('/(  +)/', array($this, '_preserveSpace'), $text);
 
         if($this->in_list_item) { // if we're in a list item, we must close the <text:p> tag
             $this->doc .= '</text:p>';
@@ -498,7 +498,7 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         $highlighted_code = preg_replace('/\n&nbsp;$/', '', $highlighted_code);
         // replace styles
         $highlighted_code = str_replace("</span>", "</text:span>", $highlighted_code);
-        $highlighted_code = preg_replace_callback('/<span style="([^"]+)">/', array('renderer_plugin_odt', '_convert_css_styles'), $highlighted_code);
+        $highlighted_code = preg_replace_callback('/<span style="([^"]+)">/', array($this, '_convert_css_styles'), $highlighted_code);
         // cleanup leftover span tags
         $highlighted_code = preg_replace('/<span[^>]*>/', "<text:span>", $highlighted_code);
         $highlighted_code = str_replace("&nbsp;", "&#xA0;", $highlighted_code);
