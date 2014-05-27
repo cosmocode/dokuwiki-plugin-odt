@@ -196,7 +196,7 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
             'Content-Type'        => $this->getMimeType(),
             'Content-Disposition' => 'attachment; filename="' . $output_filename . '";',
         );
-        p_set_metadata($ID, array('format' => array('odt_odt' => $headers)));
+        p_set_metadata($ID, array('format' => array('odt_'.$this->getFormat() => $headers)));
     }
 
     /**
@@ -228,17 +228,12 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
      * @param string $tpl full path to the template file
      * @return string the binary ZIP file contents
      */
-    function applyTemplate($tpl) {
+    protected function applyTemplate($tpl) {
         global $conf, $ID; // for the temp dir
 
         // Extract template
         $this->ZIP->Extract($tpl, $this->temp_dir);
 
-        // Prepare content
-        $autostyles    = $this->_odtAutoStyles();
-        $missingstyles = $this->_odtStyles();
-        $missingfonts  = $this->_odtFonts();
-        $userfields    = $this->_odtUserFields();
 
         // Insert content
         $old_content = io_readFile($this->temp_dir . '/content.xml');
@@ -262,12 +257,32 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
         }
 
         // Insert userfields
+        $userfields    = $this->_odtUserFields();
         if(strpos($old_content, "text:user-field-decls") === false) { // no existing userfields
             $escapedUserFields = $this->preg_replacement_quote($userfields);
             $this->_odtReplaceInFile('/<office:text([^>]*)>/U', '<office:text\1>' . $escapedUserFields, $this->temp_dir . '/content.xml', true, false);
         } else {
             $this->_odtReplaceInFile('</text:user-field-decls>', substr($userfields, 23), $this->temp_dir . '/content.xml');
         }
+
+        // set styles and stuff
+        $this->adjustStyles();
+
+        // Build the Zip
+        $this->ZIP->Compress(null, $this->temp_dir, null);
+        io_rmdir($this->temp_dir, true);
+        return $this->ZIP->get_file();
+    }
+
+    /**
+     * Adjusts the styles and manifest info of an opened template
+     *
+     * This assumes the template has been prepared in $this->temp_dir already
+     */
+    protected function adjustStyles() {
+        $autostyles    = $this->_odtAutoStyles();
+        $missingstyles = $this->_odtStyles();
+        $missingfonts  = $this->_odtFonts();
 
         // Insert styles & fonts
         $this->_odtReplaceInFile('</office:automatic-styles>', substr($autostyles, 25), $this->temp_dir . '/content.xml');
@@ -277,11 +292,6 @@ class renderer_plugin_odt_odt extends Doku_Renderer {
 
         // Add manifest data
         $this->_odtReplaceInFile('</manifest:manifest>', $this->_odtGetManifest() . '</manifest:manifest>', $this->temp_dir . '/META-INF/manifest.xml');
-
-        // Build the Zip
-        $this->ZIP->Compress(null, $this->temp_dir, null);
-        io_rmdir($this->temp_dir, true);
-        return $this->ZIP->get_file();
     }
 
     function _odtGetManifest() {
