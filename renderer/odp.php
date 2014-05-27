@@ -94,12 +94,12 @@ class renderer_plugin_odt_odp extends renderer_plugin_odt_odt {
             $page = preg_replace(
                 array(
                      '/ draw:name=".*?" /',
-                     '/DOKUWIKI-ODP-TITLE/',
-                     '/DOKUWIKI-ODP-CONTENT/'
+                     '/<text:p>\s*DOKUWIKI-ODP-TITLE\s*<\/text:p>/',
+                     '/<text:p>\s*DOKUWIKI-ODP-CONTENT\s*<\/text:p>/'
                 ),
                 array(
                      ' draw:page="page'.($num+1).'" ',
-                     $this->preg_replacement_quote($slide['title']),
+                     $this->preg_replacement_quote('<text:p>'.$slide['title'].'</text:p>'),
                      $this->preg_replacement_quote($slide['slide'])
                 ),
                 $page
@@ -109,6 +109,9 @@ class renderer_plugin_odt_odp extends renderer_plugin_odt_odt {
 
         // now add our content instead of what was in the template
         $content = preg_replace('/<draw:page.*(?:<\/draw:page>)/s', $this->preg_replacement_quote($new_content), $content);
+//print $content;
+//exit;
+
         io_saveFile($this->temp_dir . '/content.xml', $content);
 
         // set styles and stuff
